@@ -108,10 +108,21 @@ async def test_webhook_post_incoming_message_creates_lead():
         ]
     }
 
+    raw_payload = json.dumps(webhook_payload, separators=(",", ":")).encode("utf-8")
+    signature = "sha256=" + hmac.new(
+        key=settings.WHATSAPP_APP_SECRET.encode("utf-8"),
+        msg=raw_payload,
+        digestmod=hashlib.sha256
+    ).hexdigest()
+
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/webhook/whatsapp",
-            json=webhook_payload
+            content=raw_payload,
+            headers={
+                "Content-Type": "application/json",
+                "X-Hub-Signature-256": signature,
+            },
         )
 
         assert response.status_code == 200
