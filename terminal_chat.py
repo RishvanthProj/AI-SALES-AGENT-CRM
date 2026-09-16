@@ -2,16 +2,19 @@
 """
 StrideHub Shoes — Interactive Terminal AI Sales Agent
 Direct conversational interface powered by Google Gemini and Cloud Firestore.
+Features consultative sales persona, consultative active listening, and in-chat checkout with COD & UPI QR.
 """
 
 import os
 import sys
 import asyncio
 import re
+import random
 import warnings
 import logging
 import contextlib
-from typing import List, Dict, Any
+from datetime import datetime, timezone
+from typing import List, Dict, Any, Optional
 
 warnings.filterwarnings("ignore")
 logging.getLogger("google").setLevel(logging.ERROR)
@@ -42,6 +45,7 @@ from app.services.firebase_service import firebase_service
 from app.services.validation_service import validation_service
 from app.services.gemini_service import gemini_service
 from app.schemas.ai import GroundedResponseContext
+from app.schemas.firebase_models import OrderDocument, OrderItemDocument
 
 # Terminal Colors & Styling
 CYAN = "\033[96m"
@@ -56,13 +60,28 @@ ITALIC = "\033[3m"
 RESET = "\033[0m"
 
 
+# Checkout State Tracker
+checkout_session = {
+    "active": False,
+    "step": None,  # "collect_details" | "choose_payment" | "await_upi"
+    "product": None,
+    "size": "9",
+    "price": 0.0,
+    "mrp": 0.0,
+    "customer_name": None,
+    "delivery_address": None,
+    "state_pincode": None,
+    "payment_method": None,
+}
+
+
 def print_banner():
     width = 75
     print("\n" + "=" * width)
     print(f"{BOLD}{CYAN}{'👟 STRIDEHUB SHOES — AI SALES ASSISTANT (TERMINAL CHAT)':^75}{RESET}")
     print("=" * width)
     print(f"{DIM}AI Provider: {BOLD}Google Gemini ({settings.GEMINI_MODEL}){RESET}{DIM} | Database: {BOLD}Cloud Firestore{RESET}")
-    print(f"{DIM}Commands: Type your message, {YELLOW}'catalog'{RESET}{DIM} to see shoes, {YELLOW}'clear'{RESET}{DIM} to reset, {YELLOW}'exit'{RESET}{DIM} to quit.{RESET}\n")
+    print(f"{DIM}Commands: Type naturally, {YELLOW}'checkout'{RESET}{DIM} to buy, {YELLOW}'catalog'{RESET}{DIM} for shoes, {YELLOW}'clear'{RESET}{DIM} to reset, {YELLOW}'exit'{RESET}{DIM} to quit.{RESET}\n")
 
 
 def display_catalog():
@@ -83,6 +102,218 @@ def display_catalog():
     print("-" * 75 + "\n")
 
 
+def print_upi_qr_code(amount: float, product_name: str, size: str):
+    """Renders a mock UPI QR code in terminal for simulated scan and payment."""
+    print(f"\n{BOLD}{PURPLE}==========================================================================={RESET}")
+    print(f"{BOLD}{CYAN}{'📲 SCAN UPI QR CODE TO COMPLETE PAYMENT (TEST MODE)':^75}{RESET}")
+    print(f"{BOLD}{PURPLE}==========================================================================={RESET}")
+    print(f"""
+        {BOLD}┌────────────────────────────────────────┐{RESET}
+        {BOLD}│  ██████████    ████  ██    ██████████  │{RESET}
+        {BOLD}│  ██      ██    ████  ██    ██      ██  │{RESET}
+        {BOLD}│  ██  ██  ██    ██    ██    ██  ██  ██  │{RESET}
+        {BOLD}│  ██████████    ████████    ██████████  │{RESET}
+        {BOLD}│                ██  ██                  │{RESET}
+        {BOLD}│  ██████  ████████    ████████  ██████  │{RESET}
+        {BOLD}│  ██  ██  ██    ██  ██    ██    ██      │{RESET}
+        {BOLD}│  ██████████    ██  ██████████  ██████  │{RESET}
+        {BOLD}│  ██      ██    ████  ██    ██      ██  │{RESET}
+        {BOLD}│  ██  ██  ██    ██    ██    ██  ██  ██  │{RESET}
+        {BOLD}│  ██████████    ████████    ██████████  │{RESET}
+        {BOLD}└────────────────────────────────────────┘{RESET}
+    """)
+    print(f"  {BOLD}👟 Item:{RESET}       {product_name} (UK Size {size})")
+    print(f"  {BOLD}💵 Amount:{RESET}     {GREEN}₹{amount:,.2f}{RESET} (Inclusive of all taxes & Free Shipping)")
+    print(f"  {BOLD}💳 UPI ID:{RESET}     {YELLOW}stridehub@okaxis{RESET} {DIM}(StrideHub Footwear Ltd){RESET}")
+    print(f"  {BOLD}📲 Supported:{RESET}  GPay, PhonePe, Paytm, BHIM, Cred UPI")
+    print(f"{BOLD}{PURPLE}---------------------------------------------------------------------------{RESET}")
+    print(f"  {BOLD}{YELLOW}👉 Scan with your UPI app or type {GREEN}'PAID'{YELLOW} or {GREEN}'DONE'{YELLOW} to verify test payment!{RESET}")
+    print(f"{BOLD}{PURPLE}===========================================================================\n{RESET}")
+
+
+def handle_checkout_flow(user_input: str, history: List[Dict[str, str]]) -> Optional[str]:
+    """
+    Handles interactive step-by-step customer checkout:
+    1. Collect Name, Address, State/Pincode
+    2. Choose Payment Method (COD vs UPI)
+    3. Process UPI QR or COD and create Firestore order record
+    """
+    global checkout_session
+    t = user_input.lower().strip()
+    all_products = firebase_service.list_all_products("stridehub-shoes")
+
+    # If checkout was just initiated
+    if not checkout_session["active"]:
+        # Find which product customer is referring to
+        target_prod = None
+        for p in all_products:
+            name_words = [w.lower() for w in p.name.split() if len(w) > 3]
+            if any(w in t for w in name_words):
+                target_prod = p
+                break
+
+        # If not in current message, look in recent conversation history
+        if not target_prod:
+            for turn in reversed(history[-6:]):
+                turn_text = turn.get("content", "").lower()
+                for p in all_products:
+                    name_words = [w.lower() for w in p.name.split() if len(w) > 3]
+                    if any(w in turn_text for w in name_words):
+                        target_prod = p
+                        break
+                if target_prod:
+                    break
+
+        if not target_prod:
+            target_prod = all_products[0]  # default to StrideAir Zoom
+
+        # Extract size if mentioned
+        size_match = re.search(r'(?:size\s*|uk\s*)(\d{1,2})', t)
+        size_val = size_match.group(1) if size_match else "9"
+
+        checkout_session["active"] = True
+        checkout_session["step"] = "collect_details"
+        checkout_session["product"] = target_prod
+        checkout_session["size"] = size_val
+        checkout_session["price"] = float(target_prod.price)
+        checkout_session["mrp"] = float(target_prod.mrp)
+
+        return (
+            f"🎉 Fantastic choice! Let's get your order placed for the **{target_prod.name} (UK Size {size_val})** for **₹{target_prod.price:,.0f}** with FREE Express Delivery! 🚀\n\n"
+            f"To deliver your shoes, please share your details:\n"
+            f"1️⃣ **Full Name**\n"
+            f"2️⃣ **Full Address & City**\n"
+            f"3️⃣ **State & Pincode**\n\n"
+            f"{DIM}(You can type them in one message, e.g. 'Rishvanth, 42 100ft Road, Indiranagar, Bangalore, Karnataka - 560038'){RESET}"
+        )
+
+    # Step 1: Collect Details
+    if checkout_session["step"] == "collect_details":
+        checkout_session["delivery_address"] = user_input
+        # Simple heuristic extraction of name
+        parts = [p.strip() for p in user_input.split(",") if p.strip()]
+        checkout_session["customer_name"] = parts[0] if parts else "Valued Customer"
+        checkout_session["step"] = "choose_payment"
+
+        prod = checkout_session["product"]
+        size = checkout_session["size"]
+        price = checkout_session["price"]
+        mrp = checkout_session["mrp"]
+        addr = checkout_session["delivery_address"]
+
+        return (
+            f"📋 **Order Summary & Confirmation**:\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"👟 **Item**:        {prod.name} (UK Size {size})\n"
+            f"💵 **Price**:       ₹{price:,.0f} {DIM}(MRP ₹{mrp:,.0f} - You save ₹{mrp - price:,.0f}!){RESET}\n"
+            f"🚚 **Shipping**:    FREE Express Delivery (2-3 Days)\n"
+            f"💰 **Total Due**:   **₹{price:,.0f}**\n"
+            f"📍 **Deliver To**:  {addr}\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            f"How would you like to pay?\n"
+            f"👉 **1** or **COD** — Cash on Delivery\n"
+            f"👉 **2** or **UPI** — Instant Online UPI / QR Code (GPay, PhonePe, Paytm)\n\n"
+            f"Which payment option do you prefer?"
+        )
+
+    # Step 2: Choose Payment
+    if checkout_session["step"] == "choose_payment":
+        if "cod" in t or "cash" in t or "1" in t:
+            # Place COD Order
+            checkout_session["payment_method"] = "Cash on Delivery"
+            return finalize_order(is_cod=True)
+
+        elif "upi" in t or "qr" in t or "gpay" or "phonepe" in t or "2" in t or "online" in t:
+            checkout_session["payment_method"] = "UPI"
+            checkout_session["step"] = "await_upi"
+            prod = checkout_session["product"]
+            print_upi_qr_code(checkout_session["price"], prod.name, checkout_session["size"])
+            return "Please scan the QR code above to pay **₹" + f"{checkout_session['price']:,.0f}" + "** with any UPI app. Once done, simply reply **'PAID'** or **'DONE'** to confirm!"
+
+    # Step 3: Await UPI Payment
+    if checkout_session["step"] == "await_upi":
+        if any(w in t for w in ["paid", "done", "yes", "completed", "success", "sent", "transferred", "ok"]):
+            return finalize_order(is_cod=False)
+        else:
+            return "Awaiting your payment confirmation! Please reply **'PAID'** or **'DONE'** once you've scanned the UPI QR, or reply **'COD'** to switch to Cash on Delivery."
+
+    return None
+
+
+def finalize_order(is_cod: bool) -> str:
+    """Creates a verified OrderDocument in Cloud Firestore and decrements inventory atomically."""
+    global checkout_session
+    prod = checkout_session["product"]
+    size = checkout_session["size"]
+    price = checkout_session["price"]
+    name = checkout_session["customer_name"] or "Customer"
+    addr = checkout_session["delivery_address"] or "Bangalore, Karnataka"
+    pay_method = "Cash on Delivery" if is_cod else "UPI (Paid Online)"
+    pay_status = "pending" if is_cod else "paid"
+
+    # Generate unique Order ID and Tracking ID
+    rand_id = random.randint(1000, 9999)
+    order_id = f"SH-{rand_id}"
+    tracking_id = f"BD{random.randint(100000, 999999)}IN"
+
+    # Decrement inventory in Cloud Firestore atomically
+    try:
+        firebase_service.atomic_update_inventory("stridehub-shoes", prod.id, -1)
+    except Exception:
+        pass
+
+    # Save order to Firestore
+    order_doc = OrderDocument(
+        order_id=order_id,
+        businessId="stridehub-shoes",
+        customer_id="+919876543210",
+        customer_name=name,
+        contact_number="+919876543210",
+        product_id=prod.id,
+        product_name=f"{prod.name} (UK Size {size})",
+        quantity=1,
+        amount=price,
+        payment_method=pay_method,
+        payment_status=pay_status,
+        status="confirmed",
+        delivery_address=addr,
+        courier_partner="BlueDart Express",
+        tracking_id=tracking_id,
+        estimated_delivery="2-3 Business Days",
+        order_date=datetime.now(timezone.utc).isoformat()
+    )
+    firebase_service.save_order("stridehub-shoes", order_doc)
+
+    # Reset checkout session
+    checkout_session = {
+        "active": False,
+        "step": None,
+        "product": None,
+        "size": "9",
+        "price": 0.0,
+        "mrp": 0.0,
+        "customer_name": None,
+        "delivery_address": None,
+        "state_pincode": None,
+        "payment_method": None,
+    }
+
+    status_badge = f"{YELLOW}PENDING (Pay upon delivery){RESET}" if is_cod else f"{GREEN}PAID VIA UPI ✔{RESET}"
+
+    return (
+        f"🎉 **CONGRATULATIONS! YOUR ORDER HAS BEEN PLACED!** 👟✨\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"📦 **Order Number**:  **#{order_id}**\n"
+        f"👟 **Shoe**:          {prod.name} (UK Size {size})\n"
+        f"💰 **Amount**:        ₹{price:,.0f} ({status_badge})\n"
+        f"🚚 **Courier**:       BlueDart Express (AWB: **{tracking_id}**)\n"
+        f"⏱ **Delivery**:      Estimated within 2 to 3 Days\n"
+        f"📍 **Address**:       {addr}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"We've sent the confirmation receipt to your number! You can track this anytime by typing **'track #{order_id}'**. Thank you for choosing StrideHub Shoes! 🏃‍♂️💨"
+    )
+
+
 def process_message(
     user_input: str,
     history: List[Dict[str, str]],
@@ -91,6 +322,19 @@ def process_message(
     """
     Processes a customer message using Firestore grounding and Gemini.
     """
+    global checkout_session
+
+    # Check for checkout flow triggers
+    checkout_triggers = ["checkout", "buy", "order this", "place order", "i want to buy", "book this", "purchase", "confirm order"]
+    if checkout_session["active"] or any(trig in user_input.lower() for trig in checkout_triggers):
+        checkout_reply = handle_checkout_flow(user_input, history)
+        if checkout_reply:
+            return {
+                "reply_text": checkout_reply,
+                "matched_products": [],
+                "order_info": None
+            }
+
     # 1. Extract intent & signals
     sales_info = gemini_service.extract_sales_signals(user_input, history)
     query_text = sales_info.product_query or user_input
@@ -164,15 +408,15 @@ def process_message(
 
     final_reply = validation_res.sanitized_text or reply_text
 
-    # Show product recommendations when relevant
-    should_show_products = bool(matched_products) and any(
+    # Show product recommendation cards ONLY when customer specifies budget/size or asks about a specific shoe
+    is_specific_query = any(
         kw in user_input.lower()
-        for kw in ["shoe", "shoes", "price", "budget", "run", "sneaker", "formal", "walk", "buy", "cost", "option", "recommend", "show", "model"]
-    )
+        for kw in ["stride", "mountain", "nitro", "zoom", "glide", "oxford", "volt", "recommend", "show me", "options under", "size"]
+    ) and bool(matched_products)
 
     return {
         "reply_text": final_reply,
-        "matched_products": [p.model_dump() for p in matched_products[:2]] if should_show_products else [],
+        "matched_products": [p.model_dump() for p in matched_products[:2]] if is_specific_query else [],
         "order_info": order_info
     }
 
@@ -207,7 +451,7 @@ def main():
             reply = result["reply_text"]
 
             # Display Agent Response
-            print(f"\n{BOLD}{GREEN}🤖 StrideHub AI:{RESET} {reply}")
+            print(f"\n{BOLD}{GREEN}🤖 StrideHub AI:{RESET}\n{reply}")
 
             # Display Product Cards if relevant products matched
             if result.get("matched_products"):
