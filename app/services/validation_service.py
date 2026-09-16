@@ -38,25 +38,32 @@ class ValidationService:
 
         # 1. Price Integrity Validation
         if verified_products:
-            p = verified_products[0]
-            actual_price = float(p.get("salePrice") or p.get("sale_price") or p.get("price") or 0.0)
-            p_name = p.get("name", "Product")
+            valid_prices = set()
+            for p in verified_products:
+                price = float(p.get("salePrice") or p.get("sale_price") or p.get("price") or 0.0)
+                if price > 0:
+                    valid_prices.add(price)
+                mrp = float(p.get("mrp") or p.get("mrpPrice") or 0.0)
+                if mrp > 0:
+                    valid_prices.add(mrp)
 
-            # Check if AI explicitly claims a false price as the actual selling price
-            # e.g., "The price is ₹800", "It costs ₹1499", "available for ₹900"
             price_claim_pattern = r'(?:price is|costs|available for|buy it for|at a price of|selling at)\s*(?:₹|rs\.?|\$)\s?(\d+[\d,]*(?:\.\d{2})?)'
             price_claims = re.findall(price_claim_pattern, generated_reply, re.IGNORECASE)
 
             for raw_claim in price_claims:
                 claimed_price = float(raw_claim.replace(",", ""))
-                if abs(claimed_price - actual_price) > 0.01:
-                    violations.append(f"Price mismatch: AI claimed price is ₹{claimed_price}, but Firebase truth is ₹{actual_price}")
-                    sanitized = re.sub(
-                        rf'(price is|costs|available for|buy it for|at a price of|selling at)\s*(?:₹|rs\.?|\$)\s?{re.escape(raw_claim)}',
-                        f"\\1 ₹{int(actual_price) if actual_price.is_integer() else actual_price:,.2f}",
-                        sanitized,
-                        flags=re.IGNORECASE
-                    )
+                # Only flag if claimed price is not found in ANY catalog shoe
+                if not any(abs(claimed_price - vp) < 1.0 for vp in valid_prices):
+                    first_p = verified_products[0]
+                    actual_price = float(first_p.get("salePrice") or first_p.get("sale_price") or first_p.get("price") or 0.0)
+                    violations.append(f"Price mismatch: Claimed price ₹{claimed_price} not found in catalog.")
+                    if actual_price > 0:
+                        sanitized = re.sub(
+                            rf'(price is|costs|available for|buy it for|at a price of|selling at)\s*(?:₹|rs\.?|\$)\s?{re.escape(raw_claim)}',
+                            f"\\1 ₹{int(actual_price) if actual_price.is_integer() else actual_price:,.2f}",
+                            sanitized,
+                            flags=re.IGNORECASE
+                        )
 
         # 2. Stock & Inventory Validation
         if inventory_data and inventory_data.get("found"):

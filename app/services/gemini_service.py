@@ -48,7 +48,7 @@ class GeminiService(AIProvider):
             self._model
             or os.environ.get("GEMINI_MODEL")
             or settings.GEMINI_MODEL
-            or "gemini-2.5-flash"
+            or "gemini-3.5-flash-lite"
         )
 
     def _initialize_client(self):
@@ -59,7 +59,7 @@ class GeminiService(AIProvider):
                 self.client = genai.Client(api_key=key.strip())
                 logger.info("Google GenAI client initialized successfully.")
             except Exception as e:
-                logger.warning(f"Failed to initialize Google GenAI client: {e}")
+                logger.error(f"Failed to initialize Google GenAI client: {e}")
                 self.client = None
         else:
             self.client = None
@@ -90,9 +90,9 @@ class GeminiService(AIProvider):
     def extract_need(
         self,
         message_text: str,
-        conversation_history: List[Dict[str, str]]
+        conversation_history: Optional[List[Dict[str, str]]] = None
     ) -> NeedExtraction:
-        extraction = self.extract_sales_signals(message_text, conversation_history)
+        extraction = self.extract_sales_signals(message_text, conversation_history or [])
         summary = extraction.product_query or message_text.strip() or "General Inquiry"
         return NeedExtraction(
             summary=summary,
@@ -100,18 +100,27 @@ class GeminiService(AIProvider):
             clarity_score=extraction.confidence
         )
 
-    def extract_budget(self, message_text: str) -> BudgetExtraction:
-        extraction = self.extract_sales_signals(message_text, [])
+    def extract_budget(
+        self,
+        message_text: str,
+        conversation_history: Optional[List[Dict[str, str]]] = None
+    ) -> BudgetExtraction:
+        extraction = self.extract_sales_signals(message_text, conversation_history or [])
         is_provided = (extraction.budget is not None) or bool(extraction.budget_range)
+        b_range = extraction.budget_range or (f"₹{int(extraction.budget)}" if extraction.budget else None)
         return BudgetExtraction(
             raw_text=message_text,
-            budget_range=extraction.budget_range or (f"₹{int(extraction.budget)}" if extraction.budget else None),
+            budget_range=b_range,
             is_provided=is_provided,
             confidence=extraction.confidence
         )
 
-    def extract_timeline(self, message_text: str) -> TimelineExtraction:
-        extraction = self.extract_sales_signals(message_text, [])
+    def extract_timeline(
+        self,
+        message_text: str,
+        conversation_history: Optional[List[Dict[str, str]]] = None
+    ) -> TimelineExtraction:
+        extraction = self.extract_sales_signals(message_text, conversation_history or [])
         is_provided = bool(extraction.timeline)
         return TimelineExtraction(
             raw_text=message_text,
@@ -158,7 +167,7 @@ STORE POLICIES & HOURS:
 STRICT GROUNDING & BEHAVIOR RULES:
 1. Tone: Warm, energetic, conversational, human, polite, and persuasive like a knowledgeable footwear consultant.
 2. NO ROBOTIC SCRIPTS: Avoid generic corporate filler lines like "Greetings! How may I assist you today?".
-3. GROUNDING: Quote exact product names, exact prices (e.g. ₹1,499 vs MRP ₹1,999), cushioning, materials, and available UK sizes from the verified catalog.
+3. GROUNDING: Quote exact product names, exact prices (e.g. ₹1,499 vs MRP ₹1,999, StrideTrail Mountain Grip for ₹3,899), cushioning, materials, and available UK sizes from the verified catalog.
 4. ORDER TRACKING: If customer asks to track order #SH-8942, confirm it is Dispatched via BlueDart Express (Tracking: BD982341IN) arriving tomorrow by 4 PM.
 5. SIZES & DISCOUNTS: If a customer requests unavailable size (e.g. size 14) or unauthorized discount (e.g. ₹800), politely clarify with real catalog facts.
 6. MULTILINGUAL & CASUAL: Understand English, Tanglish ('bro stock iruka', 'price sollunga'), Tamil, Hindi, typos, and informal speech warmly.
@@ -173,8 +182,13 @@ STRICT GROUNDING & BEHAVIOR RULES:
 
         user_content = f"{history_text}Customer message: \"{context.customer_message}\"\n\nWrite your WhatsApp sales reply:"
 
-        candidate_models = [self.model or "gemini-3.6-flash"]
-        for model_name in candidate_models:
+        candidate_models = [self.model, "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash"]
+        unique_models = []
+        for m in candidate_models:
+            if m and m not in unique_models:
+                unique_models.append(m)
+
+        for model_name in unique_models:
             try:
                 from google.genai import types
                 response = client.models.generate_content(
@@ -190,7 +204,7 @@ STRICT GROUNDING & BEHAVIOR RULES:
                 if text:
                     return text
             except Exception as e:
-                logger.debug(f"Gemini generation with {model_name} fell back to grounded engine: {e}")
+                logger.debug(f"Gemini generation with {model_name} fell back to next model: {e}")
 
         return self._heuristic_conversational_response(context)
 
