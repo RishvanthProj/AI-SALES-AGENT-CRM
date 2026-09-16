@@ -1,2307 +1,1855 @@
-// =====================================================================
-// SOLEVAULT — High-Performance Footwear Brand & Admin OS
-// Client-side Application Logic & State Engine
-// =====================================================================
+/**
+ * Starboyz Footwear — Professional CRM Web Application & API Client Layer
+ * Real-time interconnected SaaS command center grounded in FastAPI and Cloud Firestore.
+ */
 
-(function () {
-  "use strict";
+// =============================================================================
+// 1. Centralized API Client Layer
+// =============================================================================
+const crmApi = {
+  baseUrl: '/api/crm',
 
-  // Global State
-  const state = {
-    activeView: "storefront", // "storefront" | "admin" | "chat"
-    products: [],
-    categories: [],
-    brands: [],
-    offers: [],
-    cart: JSON.parse(localStorage.getItem("solevault_cart") || "[]"),
-    appliedCoupon: localStorage.getItem("solevault_coupon") || null,
-    cartCalc: null,
-    compareIds: new Set(JSON.parse(localStorage.getItem("solevault_compare") || "[]")),
-    filters: {
-      category_id: null,
-      gender: "all",
-      size: null,
-      color: null,
-      max_price: 10000,
-      waterproof: null,
-      in_stock: null,
-      is_bestseller: null,
-      is_new: null,
-      is_limited_edition: null,
-      sort_by: "recommended",
-      search: "",
-    },
-    activeModalProduct: null,
-    adminActiveTab: "admin-products",
-    chatSessionId: "session_" + Math.random().toString(36).substring(2, 9),
-    isTyping: false,
-  };
+  async request(endpoint, options = {}) {
+    const url = `${this.baseUrl}${endpoint}`;
+    const defaultHeaders = { 'Content-Type': 'application/json' };
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: { ...defaultHeaders, ...options.headers }
+      });
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || `Request failed with status ${response.status}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.error(`API Error [${endpoint}]:`, err);
+      throw err;
+    }
+  },
 
-  function unwrap(res) {
-    if (res && res.data !== undefined) return res.data;
-    return res;
+  // Dashboard & Analytics
+  getDashboard(timeRange = '30d') {
+    return this.request(`/dashboard?time_range=${timeRange}`);
+  },
+  getAnalytics(timeRange = '30d') {
+    return this.request(`/analytics?time_range=${timeRange}`);
+  },
+  getHealth() {
+    return this.request('/health');
+  },
+  reseed() {
+    return this.request('/seed', { method: 'POST' });
+  },
+
+  // Leads & Pipeline
+  getLeads(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/leads?${query}`);
+  },
+  getLead360(leadId) {
+    return this.request(`/leads/${encodeURIComponent(leadId)}`);
+  },
+  updateLeadStage(leadId, stage, reason = '') {
+    return this.request(`/leads/${encodeURIComponent(leadId)}/stage`, {
+      method: 'POST',
+      body: JSON.stringify({ lead_id: leadId, stage, reason, business_id: 'stridehub-shoes' })
+    });
+  },
+  bulkUpdateLeads(payload) {
+    return this.request('/leads/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ ...payload, business_id: 'stridehub-shoes' })
+    });
+  },
+  getPipeline() {
+    return this.request('/pipeline');
+  },
+
+  // Customers & Customer 360
+  getCustomers(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/customers?${query}`);
+  },
+  getCustomer360(customerId) {
+    return this.request(`/customers/${encodeURIComponent(customerId)}`);
+  },
+
+  // Conversations & Transcripts
+  getConversations() {
+    return this.request('/conversations');
+  },
+  getTranscript(customerId) {
+    return this.request(`/conversations/${encodeURIComponent(customerId)}`);
+  },
+
+  // Products & Inventory
+  getProducts(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/products?${query}`);
+  },
+  getProductDetail(productId) {
+    return this.request(`/products/${encodeURIComponent(productId)}`);
+  },
+  saveProduct(product) {
+    return this.request('/products', {
+      method: 'POST',
+      body: JSON.stringify(product)
+    });
+  },
+  deleteProduct(productId) {
+    return this.request(`/products/${encodeURIComponent(productId)}`, { method: 'DELETE' });
+  },
+  duplicateProduct(productId) {
+    return this.request(`/products/${encodeURIComponent(productId)}/duplicate`, { method: 'POST' });
+  },
+  getInventoryOverview() {
+    return this.request('/inventory');
+  },
+  adjustInventory(payload) {
+    return this.request('/inventory/adjust', {
+      method: 'POST',
+      body: JSON.stringify({ ...payload, business_id: 'stridehub-shoes' })
+    });
+  },
+  getStockMovements(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/inventory/movements?${query}`);
+  },
+
+  // Orders & Fulfillment
+  getOrders(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/orders?${query}`);
+  },
+  getOrderDetail(orderId) {
+    return this.request(`/orders/${encodeURIComponent(orderId)}`);
+  },
+  updateOrderStatus(orderId, status) {
+    return this.request(`/orders/${encodeURIComponent(orderId)}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ order_id: orderId, status, business_id: 'stridehub-shoes' })
+    });
+  },
+
+  // Quotes & Invoices
+  getQuotes() {
+    return this.request('/quotes');
+  },
+  createQuote(quote) {
+    return this.request('/quotes', {
+      method: 'POST',
+      body: JSON.stringify(quote)
+    });
+  },
+  updateQuoteStatus(quoteId, status) {
+    return this.request(`/quotes/${encodeURIComponent(quoteId)}/status?status=${encodeURIComponent(status)}`, {
+      method: 'PUT'
+    });
+  },
+
+  // Tasks & Follow-ups
+  getTasks(filterView = 'all') {
+    return this.request(`/tasks?filter_view=${filterView}`);
+  },
+  createTask(task) {
+    return this.request('/tasks', {
+      method: 'POST',
+      body: JSON.stringify(task)
+    });
+  },
+  updateTask(taskId, updates) {
+    return this.request(`/tasks/${encodeURIComponent(taskId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates)
+    });
+  },
+  deleteTask(taskId) {
+    return this.request(`/tasks/${encodeURIComponent(taskId)}`, { method: 'DELETE' });
+  },
+
+  // Notes, Tags & Activity
+  getNotes(entityType, entityId) {
+    return this.request(`/notes?entity_type=${entityType}&entity_id=${entityId}`);
+  },
+  addNote(payload) {
+    return this.request('/notes', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+  getTags() {
+    return this.request('/tags');
+  },
+  createTag(payload) {
+    return this.request('/tags', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+  deleteTag(tagId) {
+    return this.request(`/tags/${encodeURIComponent(tagId)}`, { method: 'DELETE' });
+  },
+  getActivity(limit = 40) {
+    return this.request(`/activity?limit=${limit}`);
+  },
+  search(query) {
+    return this.request(`/search?query=${encodeURIComponent(query)}`);
+  },
+  getSettings() {
+    return this.request('/settings');
+  },
+  saveSettings(settings) {
+    return this.request('/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings)
+    });
+  }
+};
+
+// =============================================================================
+// 2. CRM Application State & Core Logic
+// =============================================================================
+class CrmApplication {
+  constructor() {
+    this.currentView = 'dashboard';
+    this.timeRange = '30d';
+    this.activeCustomerId = null;
+    this.activeLeadId = null;
+    this.selectedLeads = new Set();
+    this.pollingInterval = null;
+    this.catalogProducts = [];
   }
 
-  // Helper Functions
-  function formatINR(val) {
-    if (val === undefined || val === null) return "₹0";
-    return "₹" + Number(val).toLocaleString("en-IN");
+  init() {
+    this.bindNavigation();
+    this.bindModals();
+    this.bindForms();
+    this.bindSearch();
+    this.bindModeSwitcher();
+    this.startBackgroundSync();
+    this.switchView('dashboard');
   }
 
-  function showToast(message, type = "success") {
-    const toast = document.getElementById("toast");
+  // Toast Helper
+  showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
     if (!toast) return;
     toast.textContent = message;
-    toast.className = `toast show ${type}`;
+    toast.className = `toast show toast-${type}`;
     setTimeout(() => {
-      toast.className = "toast";
-    }, 3500);
+      toast.className = 'toast';
+    }, 3200);
   }
 
-  function saveCart() {
-    localStorage.setItem("solevault_cart", JSON.stringify(state.cart));
-    if (state.appliedCoupon) {
-      localStorage.setItem("solevault_coupon", state.appliedCoupon);
-    } else {
-      localStorage.removeItem("solevault_coupon");
-    }
-    updateCartUI();
-  }
-
-  function saveCompare() {
-    localStorage.setItem("solevault_compare", JSON.stringify(Array.from(state.compareIds)));
-    updateCompareCounter();
-  }
-
-  // =====================================================================
-  // 1. INITIALIZATION & ROUTING
-  // =====================================================================
-  document.addEventListener("DOMContentLoaded", () => {
-    initModeSwitcher();
-    initTheme();
-    initStoreNav();
-    initCategories();
-    initCatalogFilters();
-    initCatalogSort();
-    initSearch();
-    initCartDrawer();
-    initCheckout();
-    initProductModal();
-    initCompareDrawer();
-    initOrderTracking();
-    initAdminDashboard();
-    initAIChat();
-
-    // Initial Data Fetch
-    loadCategories();
-    loadOffers();
-    loadCatalog();
-    updateCartUI();
-    updateCompareCounter();
-  });
-
-  // Mode Switcher (Store vs Admin vs AI Chat)
-  function initModeSwitcher() {
-    const btnStore = document.getElementById("mode-store-btn");
-    const btnAdmin = document.getElementById("mode-admin-btn");
-    const btnChat = document.getElementById("mode-chat-btn");
-    const logoHome = document.getElementById("logo-home-btn");
-
-    const viewStore = document.getElementById("storefront-view");
-    const viewAdmin = document.getElementById("admin-view");
-    const viewChat = document.getElementById("chat-view");
-    const storeNav = document.getElementById("store-nav-links");
-
-    function switchMode(mode) {
-      state.activeView = mode;
-      [btnStore, btnAdmin, btnChat].forEach((b) => b && b.classList.remove("active"));
-      [viewStore, viewAdmin, viewChat].forEach((v) => v && v.classList.remove("active"));
-
-      if (mode === "storefront") {
-        btnStore && btnStore.classList.add("active");
-        viewStore && viewStore.classList.add("active");
-        if (storeNav) storeNav.style.display = "flex";
-      } else if (mode === "admin") {
-        btnAdmin && btnAdmin.classList.add("active");
-        viewAdmin && viewAdmin.classList.add("active");
-        if (storeNav) storeNav.style.display = "none";
-        loadAdminData();
-      } else if (mode === "chat") {
-        btnChat && btnChat.classList.add("active");
-        viewChat && viewChat.classList.add("active");
-        if (storeNav) storeNav.style.display = "none";
-        focusChatInput();
-      }
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    btnStore && btnStore.addEventListener("click", () => switchMode("storefront"));
-    btnAdmin && btnAdmin.addEventListener("click", () => switchMode("admin"));
-    btnChat && btnChat.addEventListener("click", () => switchMode("chat"));
-    logoHome && logoHome.addEventListener("click", () => switchMode("storefront"));
-  }
-
-  // Theme Toggle
-  function initTheme() {
-    const toggleBtn = document.getElementById("theme-toggle-btn");
-    const themeIcon = document.getElementById("theme-icon");
-    const savedTheme = localStorage.getItem("solevault_theme") || "dark";
-
-    if (savedTheme === "light") {
-      document.body.classList.remove("dark-theme");
-      document.body.classList.add("light-theme");
-      if (themeIcon) themeIcon.textContent = "☀️";
-    }
-
-    toggleBtn &&
-      toggleBtn.addEventListener("click", () => {
-        const isDark = document.body.classList.contains("dark-theme");
-        if (isDark) {
-          document.body.classList.remove("dark-theme");
-          document.body.classList.add("light-theme");
-          if (themeIcon) themeIcon.textContent = "☀️";
-          localStorage.setItem("solevault_theme", "light");
-        } else {
-          document.body.classList.remove("light-theme");
-          document.body.classList.add("dark-theme");
-          if (themeIcon) themeIcon.textContent = "🌙";
-          localStorage.setItem("solevault_theme", "dark");
-        }
-      });
-  }
-
-  // Store Navigation Links
-  function initStoreNav() {
-    const navLinks = document.querySelectorAll(".navbar-center .nav-link");
-    navLinks.forEach((link) => {
-      link.addEventListener("click", (e) => {
-        e.preventDefault();
-        navLinks.forEach((l) => l.classList.remove("active"));
-        link.classList.add("active");
-
-        const target = link.dataset.target;
-        if (target === "home") {
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        } else if (target === "shop") {
-          const el = document.getElementById("shop-section");
-          el && el.scrollIntoView({ behavior: "smooth" });
-        } else if (target === "categories") {
-          const el = document.getElementById("categories-section");
-          el && el.scrollIntoView({ behavior: "smooth" });
-        } else if (target === "offers") {
-          const el = document.getElementById("offers-section");
-          el && el.scrollIntoView({ behavior: "smooth" });
-        } else if (target === "track") {
-          const el = document.getElementById("tracking-section");
-          el && el.scrollIntoView({ behavior: "smooth" });
-        }
+  // Navigation Handlers
+  bindNavigation() {
+    document.querySelectorAll('.crm-nav-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const view = btn.getAttribute('data-view');
+        this.switchView(view);
       });
     });
 
-    // Hero quick buttons
-    const heroShopAll = document.getElementById("hero-shop-all-btn");
-    const heroRunning = document.getElementById("hero-shop-running-btn");
-    const heroSneakers = document.getElementById("hero-shop-sneakers-btn");
-    const heroLimited = document.getElementById("hero-shop-limited-btn");
-
-    heroShopAll &&
-      heroShopAll.addEventListener("click", () => {
-        resetFilters();
-        scrollToShop();
+    const sidebarToggle = document.getElementById('sidebar-toggle-btn');
+    const sidebar = document.getElementById('crm-sidebar');
+    if (sidebarToggle && sidebar) {
+      sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
       });
-
-    heroRunning &&
-      heroRunning.addEventListener("click", () => {
-        resetFilters();
-        const cat = state.categories.find((c) => c.name.toLowerCase().includes("running"));
-        if (cat) filterByCategory(cat.id);
-        scrollToShop();
-      });
-
-    heroSneakers &&
-      heroSneakers.addEventListener("click", () => {
-        resetFilters();
-        const cat = state.categories.find((c) => c.name.toLowerCase().includes("sneaker"));
-        if (cat) filterByCategory(cat.id);
-        scrollToShop();
-      });
-
-    heroLimited &&
-      heroLimited.addEventListener("click", () => {
-        resetFilters();
-        const checkbox = document.getElementById("badge-limited");
-        if (checkbox) {
-          checkbox.checked = true;
-          state.filters.is_limited_edition = true;
-          loadCatalog();
-        }
-        scrollToShop();
-      });
-  }
-
-  function scrollToShop() {
-    const el = document.getElementById("shop-section");
-    el && el.scrollIntoView({ behavior: "smooth" });
-  }
-
-  // =====================================================================
-  // 2. 20 CATEGORIES CAROUSEL & LOADING
-  // =====================================================================
-  async function loadCategories() {
-    try {
-      const res = await fetch("/api/v1/store/categories");
-      const data = unwrap(await res.json());
-      state.categories = data;
-      renderCategoriesCarousel(data);
-      renderCategoriesFilter(data);
-    } catch (err) {
-      console.error("Failed to load categories:", err);
     }
   }
 
-  function initCategories() {
-    const prevBtn = document.getElementById("cat-prev-btn");
-    const nextBtn = document.getElementById("cat-next-btn");
-    const track = document.getElementById("categories-track");
+  bindModeSwitcher() {
+    const crmBtn = document.getElementById('mode-crm-btn');
+    const storeBtn = document.getElementById('mode-store-btn');
+    const chatBtn = document.getElementById('mode-chat-btn');
 
-    prevBtn &&
-      prevBtn.addEventListener("click", () => {
-        if (track) track.scrollBy({ left: -320, behavior: "smooth" });
-      });
+    const crmView = document.getElementById('crm-view');
+    const storeView = document.getElementById('storefront-view');
+    const chatView = document.getElementById('chat-view');
 
-    nextBtn &&
-      nextBtn.addEventListener("click", () => {
-        if (track) track.scrollBy({ left: 320, behavior: "smooth" });
-      });
-  }
+    crmBtn?.addEventListener('click', () => {
+      crmBtn.classList.add('active');
+      storeBtn?.classList.remove('active');
+      chatBtn?.classList.remove('active');
+      crmView.style.display = 'block';
+      if (storeView) storeView.style.display = 'none';
+      if (chatView) chatView.style.display = 'none';
+      this.refreshCurrentView();
+    });
 
-  function renderCategoriesCarousel(categories) {
-    const track = document.getElementById("categories-track");
-    if (!track) return;
+    storeBtn?.addEventListener('click', () => {
+      storeBtn.classList.add('active');
+      crmBtn?.classList.remove('active');
+      chatBtn?.classList.remove('active');
+      if (crmView) crmView.style.display = 'none';
+      if (storeView) storeView.style.display = 'block';
+      if (chatView) chatView.style.display = 'none';
+      this.loadStorefrontProducts();
+    });
 
-    track.innerHTML = categories
-      .map(
-        (c) => `
-      <div class="category-card" data-cat-id="${c.id}">
-        <div class="cat-image-wrapper">
-          <img src="${c.image_url || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400"}" alt="${c.name}" class="cat-img" loading="lazy">
-          <div class="cat-overlay"></div>
-        </div>
-        <div class="cat-body">
-          <span class="cat-count">${c.product_count || 0} Shoes</span>
-          <h3 class="cat-name">${c.name}</h3>
-        </div>
-      </div>
-    `
-      )
-      .join("");
-
-    track.querySelectorAll(".category-card").forEach((card) => {
-      card.addEventListener("click", () => {
-        const catId = parseInt(card.dataset.catId);
-        filterByCategory(catId);
-        scrollToShop();
-      });
+    chatBtn?.addEventListener('click', () => {
+      chatBtn.classList.add('active');
+      crmBtn?.classList.remove('active');
+      storeBtn?.classList.remove('active');
+      if (crmView) crmView.style.display = 'none';
+      if (storeView) storeView.style.display = 'none';
+      if (chatView) chatView.style.display = 'block';
+      this.initLiveChat();
     });
   }
 
-  function renderCategoriesFilter(categories) {
-    const container = document.getElementById("category-filter-options");
-    if (!container) return;
-
-    container.innerHTML = `
-      <label class="filter-radio-label">
-        <input type="radio" name="cat_filter" value="" checked>
-        <span>All 20 Categories</span>
-      </label>
-      ${categories
-        .map(
-          (c) => `
-        <label class="filter-radio-label">
-          <input type="radio" name="cat_filter" value="${c.id}">
-          <span>${c.name} <small>(${c.product_count || 0})</small></span>
-        </label>
-      `
-        )
-        .join("")}
-    `;
-
-    container.querySelectorAll("input[name='cat_filter']").forEach((radio) => {
-      radio.addEventListener("change", (e) => {
-        state.filters.category_id = e.target.value ? parseInt(e.target.value) : null;
-        loadCatalog();
-      });
+  switchView(viewName, params = {}) {
+    this.currentView = viewName;
+    document.querySelectorAll('.crm-nav-item').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-view') === viewName);
     });
+
+    document.querySelectorAll('.crm-pane').forEach(pane => {
+      pane.classList.remove('active');
+    });
+
+    const targetPane = document.getElementById(`pane-${viewName}`);
+    if (targetPane) targetPane.classList.add('active');
+
+    this.updateViewHeader(viewName);
+    this.refreshCurrentView(params);
   }
 
-  function filterByCategory(catId) {
-    state.filters.category_id = catId;
-    const radios = document.querySelectorAll("input[name='cat_filter']");
-    radios.forEach((r) => {
-      r.checked = r.value == (catId || "");
-    });
-    loadCatalog();
-  }
+  updateViewHeader(viewName) {
+    const titleEl = document.getElementById('crm-view-title');
+    const subtitleEl = document.getElementById('crm-view-subtitle');
+    const actionsEl = document.getElementById('crm-top-actions');
 
-  // =====================================================================
-  // 3. 15+ FACET FILTERS & CATALOG GRID
-  // =====================================================================
-  function initCatalogFilters() {
-    // Gender Chips
-    const genderChips = document.querySelectorAll("#filter-sidebar [data-facet='gender']");
-    genderChips.forEach((chip) => {
-      chip.addEventListener("click", () => {
-        genderChips.forEach((c) => c.classList.remove("active"));
-        chip.classList.add("active");
-        state.filters.gender = chip.dataset.val;
-        loadCatalog();
-      });
-    });
-
-    // Size Chips
-    const sizeBtns = document.querySelectorAll("#size-chips-filter .size-btn");
-    sizeBtns.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        if (btn.classList.contains("active")) {
-          btn.classList.remove("active");
-          state.filters.size = null;
-        } else {
-          sizeBtns.forEach((b) => b.classList.remove("active"));
-          btn.classList.add("active");
-          state.filters.size = btn.dataset.size;
-        }
-        loadCatalog();
-      });
-    });
-
-    // Color Swatches
-    const colorDots = document.querySelectorAll("#color-swatches-filter .color-dot-btn");
-    colorDots.forEach((dot) => {
-      dot.addEventListener("click", () => {
-        if (dot.classList.contains("active")) {
-          dot.classList.remove("active");
-          state.filters.color = null;
-        } else {
-          colorDots.forEach((d) => d.classList.remove("active"));
-          dot.classList.add("active");
-          state.filters.color = dot.dataset.color;
-        }
-        loadCatalog();
-      });
-    });
-
-    // Price Slider
-    const priceSlider = document.getElementById("price-range-slider");
-    const priceLabel = document.getElementById("price-range-label");
-    if (priceSlider && priceLabel) {
-      priceSlider.addEventListener("input", (e) => {
-        const val = parseInt(e.target.value);
-        priceLabel.textContent = `Up to ${formatINR(val)}`;
-        state.filters.max_price = val;
-      });
-      priceSlider.addEventListener("change", () => {
-        loadCatalog();
-      });
-    }
-
-    // Checkboxes
-    const featWaterproof = document.getElementById("feat-waterproof");
-    const featInStock = document.getElementById("feat-instock");
-    const badgeBestseller = document.getElementById("badge-bestseller");
-    const badgeNew = document.getElementById("badge-new");
-    const badgeLimited = document.getElementById("badge-limited");
-
-    featWaterproof &&
-      featWaterproof.addEventListener("change", (e) => {
-        state.filters.waterproof = e.target.checked ? true : null;
-        loadCatalog();
-      });
-
-    featInStock &&
-      featInStock.addEventListener("change", (e) => {
-        state.filters.in_stock = e.target.checked ? true : null;
-        loadCatalog();
-      });
-
-    badgeBestseller &&
-      badgeBestseller.addEventListener("change", (e) => {
-        state.filters.is_bestseller = e.target.checked ? true : null;
-        loadCatalog();
-      });
-
-    badgeNew &&
-      badgeNew.addEventListener("change", (e) => {
-        state.filters.is_new = e.target.checked ? true : null;
-        loadCatalog();
-      });
-
-    badgeLimited &&
-      badgeLimited.addEventListener("change", (e) => {
-        state.filters.is_limited_edition = e.target.checked ? true : null;
-        loadCatalog();
-      });
-
-    // Reset Filters Button
-    const resetBtn = document.getElementById("reset-filters-btn");
-    resetBtn &&
-      resetBtn.addEventListener("click", () => {
-        resetFilters();
-        loadCatalog();
-      });
-  }
-
-  function resetFilters() {
-    state.filters = {
-      category_id: null,
-      gender: "all",
-      size: null,
-      color: null,
-      max_price: 10000,
-      waterproof: null,
-      in_stock: null,
-      is_bestseller: null,
-      is_new: null,
-      is_limited_edition: null,
-      sort_by: "recommended",
-      search: "",
+    const headers = {
+      dashboard: { title: 'Dashboard Overview', sub: 'Real-time sales performance, qualification metrics & inventory overview.' },
+      inbox: { title: 'Live Conversations & Inbox', sub: 'Monitor unscripted terminal chat & customer WhatsApp messages.' },
+      leads: { title: 'Leads Management', sub: 'Filter, qualify, score, and transition buyer leads through sales stages.' },
+      customers: { title: 'Customer 360 Database', sub: 'Lifetime order values, addresses, preferences, and activity history.' },
+      pipeline: { title: 'Sales Funnel Pipeline', sub: 'Kanban view of leads moving from Enquired to Converted.' },
+      products: { title: 'Footwear Catalog', sub: 'Authoritative shoes, variants, materials, sizes, and pricing.' },
+      inventory: { title: 'Inventory & Stock Management', sub: 'Live warehouse stock, reorder levels, and atomic updates.' },
+      movements: { title: 'Stock Movements Audit Log', sub: 'Historical audit trail of all inventory deductions and restocks.' },
+      orders: { title: 'Orders & Fulfillment', sub: 'Courier tracking, COD/UPI status, delivery timelines.' },
+      quotes: { title: 'Quotes & Invoices', sub: 'Generate, manage, and convert custom pricing quotes to orders.' },
+      tasks: { title: 'Tasks & Sales Follow-ups', sub: 'Scheduled customer follow-ups and priority action items.' },
+      tags: { title: 'Tags & Segmentation', sub: 'Categorize customers and leads with custom colored badges.' },
+      activity: { title: 'System-Wide Activity Stream', sub: 'Audit timeline of all operations across the platform.' },
+      analytics: { title: 'Deep Analytics & Conversion Reports', sub: 'Cohort retention, drop-offs, and product demand metrics.' },
+      settings: { title: 'Store Settings & Policies', sub: 'Configure business profile, operating hours, and return rules.' },
+      health: { title: 'System Health & Diagnostics', sub: 'Real-time status of FastAPI, Cloud Firestore, and Gemini.' }
     };
 
-    // Reset UI
-    const radios = document.querySelectorAll("input[name='cat_filter']");
-    radios.forEach((r) => (r.checked = r.value === ""));
+    const cur = headers[viewName] || { title: 'CRM Platform', sub: '' };
+    if (titleEl) titleEl.textContent = cur.title;
+    if (subtitleEl) subtitleEl.textContent = cur.sub;
 
-    const genderChips = document.querySelectorAll("#filter-sidebar [data-facet='gender']");
-    genderChips.forEach((c) => {
-      c.classList.toggle("active", c.dataset.val === "all");
-    });
-
-    const sizeBtns = document.querySelectorAll("#size-chips-filter .size-btn");
-    sizeBtns.forEach((b) => b.classList.remove("active"));
-
-    const colorDots = document.querySelectorAll("#color-swatches-filter .color-dot-btn");
-    colorDots.forEach((d) => d.classList.remove("active"));
-
-    const priceSlider = document.getElementById("price-range-slider");
-    const priceLabel = document.getElementById("price-range-label");
-    if (priceSlider) priceSlider.value = 10000;
-    if (priceLabel) priceLabel.textContent = "Up to ₹10,000";
-
-    const checks = [
-      "feat-waterproof",
-      "feat-instock",
-      "badge-bestseller",
-      "badge-new",
-      "badge-limited",
-    ];
-    checks.forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) el.checked = false;
-    });
-
-    const sortDropdown = document.getElementById("sort-dropdown");
-    if (sortDropdown) sortDropdown.value = "recommended";
-  }
-
-  function initCatalogSort() {
-    const sortDropdown = document.getElementById("sort-dropdown");
-    if (sortDropdown) {
-      sortDropdown.addEventListener("change", (e) => {
-        state.filters.sort_by = e.target.value;
-        loadCatalog();
-      });
+    if (actionsEl) {
+      if (viewName === 'dashboard') {
+        actionsEl.innerHTML = `
+          <select class="select-input" id="dash-range-select" onchange="crmApp.setTimeRange(this.value)">
+            <option value="7d" ${this.timeRange === '7d' ? 'selected' : ''}>7 Days</option>
+            <option value="30d" ${this.timeRange === '30d' ? 'selected' : ''}>30 Days</option>
+            <option value="90d" ${this.timeRange === '90d' ? 'selected' : ''}>90 Days</option>
+          </select>
+          <button class="btn btn-secondary" onclick="crmApp.refreshCurrentView()"><span>🔄</span> Refresh</button>
+        `;
+      } else {
+        actionsEl.innerHTML = `
+          <button class="btn btn-secondary" onclick="crmApp.refreshCurrentView()"><span>🔄</span> Refresh</button>
+        `;
+      }
     }
   }
 
-  async function loadCatalog() {
-    const grid = document.getElementById("products-grid");
-    const countLabel = document.getElementById("catalog-results-count");
-    if (!grid) return;
+  setTimeRange(range) {
+    this.timeRange = range;
+    this.refreshCurrentView();
+  }
 
-    grid.innerHTML = `<div class="loading-spinner-box"><div class="spinner"></div><span>Loading SOLEVAULT footwear...</span></div>`;
+  refreshCurrentView(params = {}) {
+    switch (this.currentView) {
+      case 'dashboard':
+        this.loadDashboard();
+        break;
+      case 'inbox':
+        this.loadInbox();
+        break;
+      case 'leads':
+        this.loadLeads(params);
+        break;
+      case 'customers':
+        this.loadCustomers(params);
+        break;
+      case 'pipeline':
+        this.loadPipeline();
+        break;
+      case 'products':
+        this.loadProducts(params);
+        break;
+      case 'inventory':
+        this.loadInventory();
+        break;
+      case 'movements':
+        this.loadMovements(params);
+        break;
+      case 'orders':
+        this.loadOrders(params);
+        break;
+      case 'quotes':
+        this.loadQuotes();
+        break;
+      case 'tasks':
+        this.loadTasks(params.filterView || 'all');
+        break;
+      case 'tags':
+        this.loadTags();
+        break;
+      case 'activity':
+        this.loadActivity();
+        break;
+      case 'analytics':
+        this.loadAnalytics();
+        break;
+      case 'settings':
+        this.loadSettings();
+        break;
+      case 'health':
+        this.loadHealth();
+        break;
+    }
+  }
 
+  startBackgroundSync() {
+    if (this.pollingInterval) clearInterval(this.pollingInterval);
+    // Background polling every 4 seconds to reflect terminal chat actions live
+    this.pollingInterval = setInterval(() => {
+      if (this.currentView === 'dashboard') {
+        this.loadDashboard(false);
+      } else if (this.currentView === 'inbox' && this.activeCustomerId) {
+        this.loadTranscript(this.activeCustomerId, false);
+      } else if (this.currentView === 'pipeline') {
+        this.loadPipeline(false);
+      }
+    }, 4000);
+  }
+
+  // ===========================================================================
+  // 3. View Loaders
+  // ===========================================================================
+
+  // 1. Dashboard
+  async loadDashboard(showSkeletons = true) {
     try {
-      const params = new URLSearchParams();
-      if (state.filters.category_id) params.set("category_id", state.filters.category_id);
-      if (state.filters.gender && state.filters.gender !== "all") params.set("gender", state.filters.gender);
-      if (state.filters.size) params.set("size", state.filters.size);
-      if (state.filters.color) params.set("color", state.filters.color);
-      if (state.filters.max_price && state.filters.max_price < 10000) params.set("max_price", state.filters.max_price);
-      if (state.filters.waterproof !== null) params.set("is_waterproof", state.filters.waterproof);
-      if (state.filters.in_stock !== null) params.set("in_stock_only", state.filters.in_stock);
-      if (state.filters.is_bestseller) params.set("is_bestseller", true);
-      if (state.filters.is_new) params.set("is_new", true);
-      if (state.filters.is_limited_edition) params.set("is_limited_edition", true);
-      if (state.filters.sort_by) params.set("sort_by", state.filters.sort_by);
-      if (state.filters.search) params.set("q", state.filters.search);
+      const data = await crmApi.getDashboard(this.timeRange);
+      const kpis = data.kpis || {};
+      const sec = data.secondary || {};
+      const charts = data.charts || {};
 
-      const res = await fetch(`/api/v1/store/products?${params.toString()}`);
-      const data = unwrap(await res.json());
-      state.products = data;
+      // Populate Top KPIs
+      this.setText('kpi-total-leads', kpis.total_leads || 0);
+      this.setText('kpi-new-leads-trend', `${kpis.new_leads || 0} New recently`);
+      this.setText('kpi-qualified-leads', kpis.qualified_leads || 0);
+      this.setText('kpi-active-conversations', kpis.active_conversations || 0);
+      this.setText('kpi-total-orders', kpis.total_orders || 0);
+      this.setText('kpi-pending-orders-trend', `${sec.pending_orders || 0} In fulfillment`);
+      this.setText('kpi-total-revenue', `₹${(kpis.total_revenue || 0).toLocaleString('en-IN')}`);
+      this.setText('kpi-conversion-rate', `${kpis.conversion_rate || 0}%`);
+      this.setText('kpi-aov', `₹${(kpis.average_order_value || 0).toLocaleString('en-IN')}`);
+      this.setText('kpi-human-handoff', sec.human_handoff || 0);
 
-      if (countLabel) {
-        countLabel.textContent = `Showing ${data.length} Shoes`;
+      // Populate Secondary Indicators
+      this.setText('sec-nurture', sec.nurture_leads || 0);
+      this.setText('sec-pending-orders', sec.pending_orders || 0);
+      this.setText('sec-low-stock', sec.low_stock || 0);
+      this.setText('sec-out-stock', sec.out_of_stock || 0);
+      this.setText('sec-followups', sec.followups_due || 0);
+
+      // Update sidebar badge pills
+      this.setText('inbox-badge-count', kpis.active_conversations || 0);
+      this.setText('leads-badge-count', kpis.total_leads || 0);
+      this.setText('orders-badge-count', kpis.total_orders || 0);
+      this.setText('tasks-badge-count', sec.followups_due || 0);
+
+      const lowStockBadge = document.getElementById('low-stock-badge-count');
+      if (lowStockBadge) {
+        if (sec.low_stock > 0) {
+          lowStockBadge.style.display = 'inline-block';
+          lowStockBadge.textContent = sec.low_stock;
+        } else {
+          lowStockBadge.style.display = 'none';
+        }
       }
 
-      renderCatalogGrid(data);
-      renderActiveFilterChips();
+      // Handoff Banner
+      const banner = document.getElementById('crm-handoff-banner');
+      if (banner) {
+        if (sec.human_handoff > 0) {
+          banner.style.display = 'flex';
+          this.setText('handoff-banner-text', `${sec.human_handoff} customer(s) requested human sales consultation.`);
+        } else {
+          banner.style.display = 'none';
+        }
+      }
+
+      // Render Charts
+      this.renderSvgTrendChart('dash-revenue-chart', charts.revenue_trend || [], '₹');
+      this.renderSvgTrendChart('dash-leads-chart', charts.leads_trend || [], '');
+      this.renderFunnelChart('dash-funnel-chart', charts.funnel || {});
+      this.renderTopProductsList('dash-top-products-list', charts.top_products || []);
+
     } catch (err) {
-      console.error("Failed to load catalog:", err);
-      grid.innerHTML = `<div class="error-msg">Failed to load products. Please try again.</div>`;
+      console.error('Failed loading dashboard:', err);
     }
   }
 
-  function renderCatalogGrid(products) {
-    const grid = document.getElementById("products-grid");
-    if (!grid) return;
+  // 2. Inbox & Conversations
+  async loadInbox() {
+    try {
+      const conversations = await crmApi.getConversations();
+      const listEl = document.getElementById('inbox-conversations-list');
+      if (!listEl) return;
 
-    if (!products || products.length === 0) {
-      grid.innerHTML = `
-        <div class="empty-state-box">
-          <div class="empty-icon">👟</div>
-          <h3>No Shoes Found</h3>
-          <p>We couldn't find any footwear matching your exact filter criteria.</p>
-          <button class="btn btn-secondary" onclick="resetFiltersAndReload()">Reset All Filters</button>
-        </div>
-      `;
-      return;
-    }
+      if (!conversations.length) {
+        listEl.innerHTML = '<div class="empty-state">No conversations recorded yet. Start terminal_chat.py to interact with customer.</div>';
+        return;
+      }
 
-    grid.innerHTML = products
-      .map((p) => {
-        const isCompared = state.compareIds.has(p.id);
-        const discountPct = p.mrp > p.base_price ? Math.round(((p.mrp - p.base_price) / p.mrp) * 100) : 0;
-
-        let badgeHtml = "";
-        if (p.is_limited_edition) {
-          badgeHtml = `<span class="product-badge badge-limited">LIMITED</span>`;
-        } else if (p.is_bestseller) {
-          badgeHtml = `<span class="product-badge badge-bestseller">BESTSELLER</span>`;
-        } else if (p.is_new) {
-          badgeHtml = `<span class="product-badge badge-new">NEW RELEASE</span>`;
-        } else if (discountPct > 0) {
-          badgeHtml = `<span class="product-badge badge-sale">${discountPct}% OFF</span>`;
-        }
-
-        const ratingStars = "★".repeat(Math.round(p.rating_avg || 4.5)) + "☆".repeat(5 - Math.round(p.rating_avg || 4.5));
-
+      listEl.innerHTML = conversations.map(c => {
+        const isHandoff = c.stage === 'human_handoff' || c.requires_handoff;
+        const timeAgo = this.formatTimeAgo(c.timestamp);
         return `
-        <div class="product-card" data-product-id="${p.id}">
-          <div class="product-card-media">
-            ${badgeHtml}
-            <button class="compare-toggle-btn ${isCompared ? "active" : ""}" data-id="${p.id}" title="Compare this shoe">
-              <span>⚖️</span>
-            </button>
-            <img src="${p.primary_image || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600"}" alt="${p.name}" class="product-card-img" loading="lazy">
-            <button class="quick-view-overlay-btn" data-id="${p.id}">Quick View</button>
-          </div>
-          <div class="product-card-body">
-            <div class="card-meta-row">
-              <span class="card-category-pill">${p.category_name || "Footwear"}</span>
-              <span class="card-gender-pill">${p.gender || "Unisex"}</span>
+          <div class="conv-item ${this.activeCustomerId === c.customer_id ? 'active' : ''}" onclick="crmApp.selectConversation('${c.customer_id}', '${escape(c.customer_name)}')">
+            <div class="conv-header">
+              <span class="conv-name">${this.escapeHtml(c.customer_name)}</span>
+              <span class="conv-time">${timeAgo}</span>
             </div>
-            <h3 class="product-card-title">${p.name}</h3>
-            <div class="product-rating-row">
-              <span class="stars">${ratingStars}</span>
-              <span class="rating-val">${p.rating_avg ? p.rating_avg.toFixed(1) : "4.8"}</span>
-              <span class="review-count">(${p.rating_count || 12})</span>
-            </div>
-            <div class="product-price-row">
-              <span class="current-price">${formatINR(p.base_price)}</span>
-              ${p.mrp > p.base_price ? `<span class="original-mrp">${formatINR(p.mrp)}</span>` : ""}
-            </div>
-            <div class="card-stock-indicator ${p.total_stock > 10 ? "in-stock" : "low-stock"}">
-              ${p.total_stock > 0 ? `● In Stock (${p.total_stock} pairs)` : `● Out of Stock`}
-            </div>
-            <div class="card-actions-row">
-              <button class="btn btn-primary btn-sm btn-block add-to-cart-quick-btn" data-id="${p.id}">
-                <span>🛒</span> Add to Cart
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-      })
-      .join("");
-
-    // Wire Card Click Handlers
-    grid.querySelectorAll(".quick-view-overlay-btn, .product-card-title, .product-card-img").forEach((el) => {
-      el.addEventListener("click", (e) => {
-        const card = el.closest(".product-card");
-        if (card) {
-          const pid = parseInt(card.dataset.productId);
-          openProductDetailModal(pid);
-        }
-      });
-    });
-
-    grid.querySelectorAll(".add-to-cart-quick-btn").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const pid = parseInt(btn.dataset.id);
-        openProductDetailModal(pid);
-      });
-    });
-
-    grid.querySelectorAll(".compare-toggle-btn").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const pid = parseInt(btn.dataset.id);
-        toggleCompare(pid, btn);
-      });
-    });
-  }
-
-  window.resetFiltersAndReload = function () {
-    resetFilters();
-    loadCatalog();
-  };
-
-  function renderActiveFilterChips() {
-    const container = document.getElementById("active-filter-chips");
-    if (!container) return;
-
-    const chips = [];
-    if (state.filters.category_id) {
-      const cat = state.categories.find((c) => c.id === state.filters.category_id);
-      if (cat) chips.push({ label: `Category: ${cat.name}`, key: "category_id" });
-    }
-    if (state.filters.gender && state.filters.gender !== "all") {
-      chips.push({ label: `Gender: ${state.filters.gender}`, key: "gender" });
-    }
-    if (state.filters.size) {
-      chips.push({ label: `Size: UK ${state.filters.size}`, key: "size" });
-    }
-    if (state.filters.color) {
-      chips.push({ label: `Color: ${state.filters.color}`, key: "color" });
-    }
-    if (state.filters.max_price < 10000) {
-      chips.push({ label: `Max: ${formatINR(state.filters.max_price)}`, key: "max_price" });
-    }
-    if (state.filters.waterproof) {
-      chips.push({ label: `Waterproof`, key: "waterproof" });
-    }
-    if (state.filters.in_stock) {
-      chips.push({ label: `In Stock Only`, key: "in_stock" });
-    }
-    if (state.filters.is_bestseller) {
-      chips.push({ label: `Best Sellers`, key: "is_bestseller" });
-    }
-    if (state.filters.is_new) {
-      chips.push({ label: `New Arrivals`, key: "is_new" });
-    }
-    if (state.filters.is_limited_edition) {
-      chips.push({ label: `Limited Edition`, key: "is_limited_edition" });
-    }
-    if (state.filters.search) {
-      chips.push({ label: `Search: "${state.filters.search}"`, key: "search" });
-    }
-
-    if (chips.length === 0) {
-      container.innerHTML = "";
-      return;
-    }
-
-    container.innerHTML = chips
-      .map(
-        (chip) => `
-      <span class="filter-chip">
-        ${chip.label}
-        <button class="remove-chip-btn" data-key="${chip.key}">✕</button>
-      </span>
-    `
-      )
-      .join("");
-
-    container.querySelectorAll(".remove-chip-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const key = btn.dataset.key;
-        if (key === "category_id") state.filters.category_id = null;
-        if (key === "gender") state.filters.gender = "all";
-        if (key === "size") state.filters.size = null;
-        if (key === "color") state.filters.color = null;
-        if (key === "max_price") state.filters.max_price = 10000;
-        if (key === "waterproof") state.filters.waterproof = null;
-        if (key === "in_stock") state.filters.in_stock = null;
-        if (key === "is_bestseller") state.filters.is_bestseller = null;
-        if (key === "is_new") state.filters.is_new = null;
-        if (key === "is_limited_edition") state.filters.is_limited_edition = null;
-        if (key === "search") state.filters.search = "";
-        loadCatalog();
-      });
-    });
-  }
-
-  // =====================================================================
-  // 4. OFFERS & DEALS SECTION
-  // =====================================================================
-  async function loadOffers() {
-    try {
-      const res = await fetch("/api/v1/store/offers");
-      const data = unwrap(await res.json());
-      state.offers = data;
-      renderOffers(data);
-    } catch (err) {
-      console.error("Failed to load offers:", err);
-    }
-  }
-
-  function renderOffers(offers) {
-    const container = document.getElementById("offers-container");
-    if (!container) return;
-
-    container.innerHTML = offers
-      .map(
-        (offer) => `
-      <div class="offer-card">
-        <div class="offer-header">
-          <span class="offer-badge">${offer.discount_type === "percentage" ? `${offer.discount_value}% OFF` : `₹${offer.discount_value} FLAT OFF`}</span>
-          <span class="offer-exp">Active SOLEVAULT 2026</span>
-        </div>
-        <h3 class="offer-title">${offer.description}</h3>
-        <p class="offer-min">Min order value: ${formatINR(offer.min_order_value)}</p>
-        <div class="coupon-copy-row">
-          <code class="coupon-code-pill">${offer.code}</code>
-          <button class="btn btn-secondary btn-sm copy-coupon-btn" data-code="${offer.code}">Copy & Apply</button>
-        </div>
-      </div>
-    `
-      )
-      .join("");
-
-    container.querySelectorAll(".copy-coupon-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const code = btn.dataset.code;
-        state.appliedCoupon = code;
-        saveCart();
-        showToast(`Coupon ${code} applied to your cart!`, "success");
-        openCartDrawer();
-      });
-    });
-  }
-
-  // =====================================================================
-  // 5. PRODUCT DETAIL MODAL & 360/GALLERY/SIZE/COLOR SELECTORS
-  // =====================================================================
-  function initProductModal() {
-    const modal = document.getElementById("product-detail-modal");
-    const closeBtn = document.getElementById("close-product-modal");
-
-    closeBtn &&
-      closeBtn.addEventListener("click", () => {
-        modal && modal.classList.remove("active");
-      });
-
-    modal &&
-      modal.addEventListener("click", (e) => {
-        if (e.target === modal) modal.classList.remove("active");
-      });
-  }
-
-  async function openProductDetailModal(productId) {
-    const modal = document.getElementById("product-detail-modal");
-    const content = document.getElementById("product-modal-content");
-    if (!modal || !content) return;
-
-    modal.classList.add("active");
-    content.innerHTML = `<div class="loading-spinner-box"><div class="spinner"></div><span>Loading full shoe specs...</span></div>`;
-
-    try {
-      const res = await fetch(`/api/v1/store/products/${productId}`);
-      if (!res.ok) throw new Error("Product not found");
-      const product = unwrap(await res.json());
-      state.activeModalProduct = product;
-      renderProductModalContent(product);
-    } catch (err) {
-      console.error("Failed to load product modal:", err);
-      content.innerHTML = `<div class="error-msg">Failed to load product details.</div>`;
-    }
-  }
-
-  function renderProductModalContent(p) {
-    const content = document.getElementById("product-modal-content");
-    if (!content) return;
-
-    const discountPct = p.mrp > p.base_price ? Math.round(((p.mrp - p.base_price) / p.mrp) * 100) : 0;
-    const variants = p.variants || [];
-    const colors = Array.from(new Set(variants.map((v) => v.color_name).filter(Boolean)));
-    const sizes = Array.from(new Set(variants.map((v) => v.size_uk).filter(Boolean))).sort((a, b) => a - b);
-
-    let selectedVariant = variants[0] || null;
-    let selectedColor = selectedVariant ? selectedVariant.color_name : colors[0] || "Black";
-    let selectedSize = selectedVariant ? selectedVariant.size_uk : sizes[0] || 8;
-
-    const images = p.images && p.images.length > 0 ? p.images : [{ image_url: p.primary_image || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800" }];
-
-    content.innerHTML = `
-      <div class="product-modal-media">
-        <div class="modal-main-image-wrapper">
-          <img src="${images[0].image_url}" alt="${p.name}" class="modal-main-img" id="modal-active-img">
-          ${p.is_waterproof ? `<span class="tech-badge">💧 WATERPROOF</span>` : ""}
-          ${p.is_limited_edition ? `<span class="tech-badge tech-limited">⚡ LIMITED EDITION</span>` : ""}
-        </div>
-        <div class="modal-thumbnails-strip" id="modal-thumbs">
-          ${images
-            .map(
-              (img, idx) => `
-            <img src="${img.image_url}" class="modal-thumb ${idx === 0 ? "active" : ""}" data-src="${img.image_url}" alt="angle ${idx + 1}">
-          `
-            )
-            .join("")}
-        </div>
-      </div>
-
-      <div class="product-modal-info">
-        <div class="modal-header-meta">
-          <span class="card-category-pill">${p.category_name}</span>
-          <span class="card-gender-pill">${p.gender}</span>
-          <span class="sku-pill">SKU: ${p.sku}</span>
-        </div>
-
-        <h2 class="modal-product-title">${p.name}</h2>
-
-        <div class="product-rating-row">
-          <span class="stars">★★★★★</span>
-          <span class="rating-val">${p.rating_avg ? p.rating_avg.toFixed(1) : "4.8"}</span>
-          <span class="review-count">(${p.rating_count || 18} verified buyer reviews)</span>
-        </div>
-
-        <div class="modal-pricing-box">
-          <span class="modal-price">${formatINR(p.base_price)}</span>
-          ${p.mrp > p.base_price ? `<span class="modal-mrp">${formatINR(p.mrp)}</span>` : ""}
-          ${discountPct > 0 ? `<span class="modal-discount-tag">${discountPct}% OFF</span>` : ""}
-          <span class="tax-inclusive-tag">Inclusive of all GST & taxes</span>
-        </div>
-
-        <p class="modal-desc">${p.description || "Engineered for maximum athletic propulsion, ergonomic arch support, and high-traction durability."}</p>
-
-        <!-- Color Selection -->
-        ${
-          colors.length > 0
-            ? `
-          <div class="modal-option-group">
-            <label class="modal-group-label">Color: <strong id="modal-selected-color-name">${selectedColor}</strong></label>
-            <div class="modal-color-chips" id="modal-color-chips">
-              ${colors
-                .map(
-                  (col) => `
-                <button class="modal-color-btn ${col === selectedColor ? "active" : ""}" data-color="${col}">${col}</button>
-              `
-                )
-                .join("")}
-            </div>
-          </div>
-        `
-            : ""
-        }
-
-        <!-- Size Selection (UK/US/EU) -->
-        <div class="modal-option-group">
-          <div class="size-header-row">
-            <label class="modal-group-label">Select UK Size:</label>
-            <span class="size-chart-badge" title="UK 8 = US 9 = EU 42 = 27.0cm">📏 International Size Guide</span>
-          </div>
-          <div class="modal-size-chips" id="modal-size-chips">
-            ${sizes
-              .map(
-                (sz) => `
-              <button class="modal-size-btn ${sz === selectedSize ? "active" : ""}" data-size="${sz}">UK ${sz}</button>
-            `
-              )
-              .join("")}
-          </div>
-          <div class="size-conversion-helper" id="size-conversion-helper">
-            UK ${selectedSize} = US ${Number(selectedSize) + 1} • EU ${Number(selectedSize) + 34} • CM ${(Number(selectedSize) * 0.8 + 20.6).toFixed(1)} cm
-          </div>
-        </div>
-
-        <!-- Stock Availability Status -->
-        <div class="modal-stock-banner" id="modal-stock-banner">
-          <span class="stock-dot green"></span>
-          <span class="stock-text">In Stock across Mumbai & Bengaluru Hubs (Ready for Dispatch)</span>
-        </div>
-
-        <!-- Quantity and Action Buttons -->
-        <div class="modal-purchase-actions">
-          <div class="qty-stepper">
-            <button class="qty-btn" id="modal-qty-minus">-</button>
-            <input type="number" id="modal-qty-input" class="qty-input" value="1" min="1" max="10" readonly>
-            <button class="qty-btn" id="modal-qty-plus">+</button>
-          </div>
-          <button class="btn btn-primary btn-lg" id="modal-add-cart-btn">
-            <span>🛒</span> Add to Shopping Bag
-          </button>
-          <button class="btn btn-secondary btn-lg" id="modal-compare-btn">
-            <span>⚖️</span> Compare
-          </button>
-        </div>
-
-        <!-- Shoe Tech Specs -->
-        <div class="modal-tech-specs">
-          <h4>Performance & Material Specifications</h4>
-          <div class="specs-grid">
-            <div class="spec-item">
-              <span class="spec-lbl">Upper Material</span>
-              <span class="spec-val">${p.upper_material || "Engineered Breathable Mesh"}</span>
-            </div>
-            <div class="spec-item">
-              <span class="spec-lbl">Sole Technology</span>
-              <span class="spec-val">${p.sole_material || "Dual-Density EVA + Carbon Rubber"}</span>
-            </div>
-            <div class="spec-item">
-              <span class="spec-lbl">Cushioning</span>
-              <span class="spec-val">${p.cushioning_level || "Max Responsive"}</span>
-            </div>
-            <div class="spec-item">
-              <span class="spec-lbl">Weight</span>
-              <span class="spec-val">${p.weight_grams ? p.weight_grams + "g" : "285g (UK 8)"}</span>
-            </div>
-            <div class="spec-item">
-              <span class="spec-lbl">Heel Drop</span>
-              <span class="spec-val">${p.heel_drop_mm ? p.heel_drop_mm + " mm" : "8 mm"}</span>
-            </div>
-            <div class="spec-item">
-              <span class="spec-lbl">Closure</span>
-              <span class="spec-val">${p.closure_type || "Lace-Up Pro"}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Customer Reviews Snippet -->
-        <div class="modal-reviews-section">
-          <h4>Verified Customer Reviews (${p.reviews ? p.reviews.length : 0})</h4>
-          <div class="reviews-list">
-            ${
-              p.reviews && p.reviews.length > 0
-                ? p.reviews
-                    .map(
-                      (r) => `
-                <div class="review-card">
-                  <div class="review-header">
-                    <span class="reviewer-name">${r.user_name || "Verified Customer"}</span>
-                    <span class="stars">${"★".repeat(r.rating)}</span>
-                  </div>
-                  <strong class="review-title">${r.title || "Excellent comfort and grip"}</strong>
-                  <p class="review-comment">${r.comment || ""}</p>
-                </div>
-              `
-                    )
-                    .join("")
-                : `<p class="no-reviews">No written reviews yet. Be the first to review this pair!</p>`
-            }
-          </div>
-        </div>
-
-      </div>
-    `;
-
-    // Wire Thumbnail Switcher
-    const mainImg = document.getElementById("modal-active-img");
-    const thumbs = content.querySelectorAll(".modal-thumb");
-    thumbs.forEach((th) => {
-      th.addEventListener("click", () => {
-        thumbs.forEach((t) => t.classList.remove("active"));
-        th.classList.add("active");
-        if (mainImg) mainImg.src = th.dataset.src;
-      });
-    });
-
-    // Wire Color Buttons
-    const colorBtns = content.querySelectorAll(".modal-color-btn");
-    colorBtns.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        colorBtns.forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        selectedColor = btn.dataset.color;
-        const colLabel = document.getElementById("modal-selected-color-name");
-        if (colLabel) colLabel.textContent = selectedColor;
-      });
-    });
-
-    // Wire Size Buttons
-    const sizeBtns = content.querySelectorAll(".modal-size-btn");
-    sizeBtns.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        sizeBtns.forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        selectedSize = btn.dataset.size;
-        const helper = document.getElementById("size-conversion-helper");
-        if (helper) {
-          helper.textContent = `UK ${selectedSize} = US ${Number(selectedSize) + 1} • EU ${Number(selectedSize) + 34} • CM ${(Number(selectedSize) * 0.8 + 20.6).toFixed(1)} cm`;
-        }
-      });
-    });
-
-    // Quantity Stepper
-    const qtyInput = document.getElementById("modal-qty-input");
-    const qtyMinus = document.getElementById("modal-qty-minus");
-    const qtyPlus = document.getElementById("modal-qty-plus");
-
-    qtyMinus &&
-      qtyMinus.addEventListener("click", () => {
-        let val = parseInt(qtyInput.value) || 1;
-        if (val > 1) qtyInput.value = val - 1;
-      });
-
-    qtyPlus &&
-      qtyPlus.addEventListener("click", () => {
-        let val = parseInt(qtyInput.value) || 1;
-        if (val < 10) qtyInput.value = val + 1;
-      });
-
-    // Add to Cart
-    const addCartBtn = document.getElementById("modal-add-cart-btn");
-    addCartBtn &&
-      addCartBtn.addEventListener("click", () => {
-        const qty = parseInt(qtyInput.value) || 1;
-        const matchedVariant = variants.find((v) => v.size_uk == selectedSize && v.color_name === selectedColor) || variants[0] || {};
-
-        addToCart({
-          product_id: p.id,
-          variant_id: matchedVariant.id || 1,
-          shoe_name: p.name,
-          image: p.primary_image || (images[0] ? images[0].image_url : ""),
-          color: selectedColor,
-          size: selectedSize,
-          price: p.base_price,
-          quantity: qty,
-        });
-
-        const modal = document.getElementById("product-detail-modal");
-        if (modal) modal.classList.remove("active");
-        openCartDrawer();
-      });
-
-    // Compare
-    const compareBtn = document.getElementById("modal-compare-btn");
-    compareBtn &&
-      compareBtn.addEventListener("click", () => {
-        toggleCompare(p.id);
-      });
-  }
-
-  // =====================================================================
-  // 6. CART MANAGEMENT & SERVER-SIDE TAX/SHIPPING/COUPON CALCULATION
-  // =====================================================================
-  function initCartDrawer() {
-    const openBtn = document.getElementById("open-cart-btn");
-    const closeBtn = document.getElementById("close-cart-drawer");
-    const drawerOverlay = document.getElementById("cart-drawer-overlay");
-    const applyCouponBtn = document.getElementById("apply-coupon-btn");
-    const checkoutBtn = document.getElementById("proceed-checkout-btn");
-
-    openBtn && openBtn.addEventListener("click", openCartDrawer);
-    closeBtn && closeBtn.addEventListener("click", closeCartDrawer);
-
-    drawerOverlay &&
-      drawerOverlay.addEventListener("click", (e) => {
-        if (e.target === drawerOverlay) closeCartDrawer();
-      });
-
-    applyCouponBtn &&
-      applyCouponBtn.addEventListener("click", () => {
-        const input = document.getElementById("coupon-code-input");
-        if (input && input.value.trim()) {
-          state.appliedCoupon = input.value.trim().toUpperCase();
-          saveCart();
-          showToast(`Applied coupon: ${state.appliedCoupon}`, "success");
-        }
-      });
-
-    checkoutBtn &&
-      checkoutBtn.addEventListener("click", () => {
-        if (state.cart.length === 0) {
-          showToast("Your shopping cart is empty!", "error");
-          return;
-        }
-        closeCartDrawer();
-        openCheckoutModal();
-      });
-  }
-
-  function openCartDrawer() {
-    const overlay = document.getElementById("cart-drawer-overlay");
-    if (overlay) overlay.classList.add("active");
-    updateCartUI();
-  }
-
-  function closeCartDrawer() {
-    const overlay = document.getElementById("cart-drawer-overlay");
-    if (overlay) overlay.classList.remove("active");
-  }
-
-  function addToCart(item) {
-    const existingIndex = state.cart.findIndex(
-      (ci) => ci.product_id === item.product_id && ci.size == item.size && ci.color === item.color
-    );
-
-    if (existingIndex > -1) {
-      state.cart[existingIndex].quantity += item.quantity;
-    } else {
-      state.cart.push(item);
-    }
-
-    saveCart();
-    showToast(`Added ${item.shoe_name} (UK ${item.size}) to Bag!`, "success");
-  }
-
-  async function updateCartUI() {
-    const counter = document.getElementById("cart-counter");
-    const drawerCount = document.getElementById("cart-drawer-count");
-    const itemsContainer = document.getElementById("cart-items-container");
-    const subtotalEl = document.getElementById("cart-subtotal");
-    const discountRow = document.getElementById("cart-discount-row");
-    const discountEl = document.getElementById("cart-coupon-discount");
-    const taxEl = document.getElementById("cart-tax");
-    const shippingEl = document.getElementById("cart-shipping");
-    const totalEl = document.getElementById("cart-total");
-    const freeShippingText = document.getElementById("free-shipping-text");
-    const freeShippingBar = document.getElementById("free-shipping-bar");
-    const couponInput = document.getElementById("coupon-code-input");
-    const couponFeedback = document.getElementById("coupon-feedback");
-
-    const totalItems = state.cart.reduce((sum, item) => sum + item.quantity, 0);
-    if (counter) counter.textContent = totalItems;
-    if (drawerCount) drawerCount.textContent = `(${totalItems} item${totalItems === 1 ? "" : "s"})`;
-
-    if (!itemsContainer) return;
-
-    if (state.cart.length === 0) {
-      itemsContainer.innerHTML = `
-        <div class="cart-empty-state">
-          <span class="cart-empty-icon">🛒</span>
-          <h4>Your Bag is Empty</h4>
-          <p>Discover our lightweight running, lifestyle, and limited editions.</p>
-          <button class="btn btn-primary" onclick="closeCartAndShop()">Explore Catalog</button>
-        </div>
-      `;
-      if (subtotalEl) subtotalEl.textContent = "₹0";
-      if (taxEl) taxEl.textContent = "₹0";
-      if (shippingEl) shippingEl.textContent = "₹0";
-      if (totalEl) totalEl.textContent = "₹0";
-      if (discountRow) discountRow.style.display = "none";
-      if (freeShippingBar) freeShippingBar.style.width = "0%";
-      if (freeShippingText) freeShippingText.textContent = "Add ₹1,500 more for Free Express Delivery";
-      return;
-    }
-
-    // Render Items
-    itemsContainer.innerHTML = state.cart
-      .map(
-        (item, idx) => `
-      <div class="cart-item-row" data-idx="${idx}">
-        <img src="${item.image || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200"}" alt="${item.shoe_name}" class="cart-item-thumb">
-        <div class="cart-item-details">
-          <h4 class="cart-item-title">${item.shoe_name}</h4>
-          <div class="cart-item-spec-pills">
-            <span>Color: <strong>${item.color || "Standard"}</strong></span>
-            <span>Size: <strong>UK ${item.size}</strong></span>
-          </div>
-          <div class="cart-item-price">${formatINR(item.price)}</div>
-        </div>
-        <div class="cart-item-actions">
-          <div class="cart-stepper">
-            <button class="cart-step-btn cart-minus" data-idx="${idx}">-</button>
-            <span class="cart-step-val">${item.quantity}</span>
-            <button class="cart-step-btn cart-plus" data-idx="${idx}">+</button>
-          </div>
-          <button class="cart-remove-btn" data-idx="${idx}" title="Remove item">🗑️</button>
-        </div>
-      </div>
-    `
-      )
-      .join("");
-
-    // Wire Steppers and Remove
-    itemsContainer.querySelectorAll(".cart-minus").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const idx = parseInt(btn.dataset.idx);
-        if (state.cart[idx].quantity > 1) {
-          state.cart[idx].quantity -= 1;
-        } else {
-          state.cart.splice(idx, 1);
-        }
-        saveCart();
-      });
-    });
-
-    itemsContainer.querySelectorAll(".cart-plus").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const idx = parseInt(btn.dataset.idx);
-        state.cart[idx].quantity += 1;
-        saveCart();
-      });
-    });
-
-    itemsContainer.querySelectorAll(".cart-remove-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const idx = parseInt(btn.dataset.idx);
-        state.cart.splice(idx, 1);
-        saveCart();
-      });
-    });
-
-    // Server-side Cart Calculation
-    try {
-      const payload = {
-        items: state.cart.map((i) => ({
-          product_id: i.product_id,
-          variant_id: i.variant_id || 1,
-          quantity: i.quantity,
-          unit_price: i.price,
-        })),
-        coupon_code: state.appliedCoupon,
-      };
-
-      const res = await fetch("/api/v1/cart/calculate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        const calc = unwrap(await res.json());
-        state.cartCalc = calc;
-
-        if (subtotalEl) subtotalEl.textContent = formatINR(calc.subtotal);
-        if (taxEl) taxEl.textContent = formatINR(calc.tax_amount);
-        if (shippingEl) shippingEl.textContent = calc.shipping_fee === 0 ? "FREE" : formatINR(calc.shipping_fee);
-        if (totalEl) totalEl.textContent = formatINR(calc.total);
-
-        if (calc.discount_amount > 0) {
-          if (discountRow) discountRow.style.display = "flex";
-          if (discountEl) discountEl.textContent = `-${formatINR(calc.discount_amount)}`;
-          if (couponFeedback) {
-            couponFeedback.textContent = `✓ Coupon "${state.appliedCoupon}" Applied (-${formatINR(calc.discount_amount)})`;
-            couponFeedback.className = "coupon-feedback valid";
-          }
-        } else {
-          if (discountRow) discountRow.style.display = "none";
-          if (couponFeedback) {
-            if (state.appliedCoupon) {
-              couponFeedback.textContent = `⚠️ Coupon not eligible (Check min order value)`;
-              couponFeedback.className = "coupon-feedback invalid";
-            } else {
-              couponFeedback.textContent = "";
-            }
-          }
-        }
-
-        // Free Shipping Progress
-        if (freeShippingBar && freeShippingText) {
-          if (calc.free_shipping_qualified) {
-            freeShippingBar.style.width = "100%";
-            freeShippingText.textContent = "🎉 Congratulations! You have unlocked FREE Express Delivery";
-          } else {
-            const pct = Math.min(100, Math.round((calc.subtotal / 1500) * 100));
-            freeShippingBar.style.width = `${pct}%`;
-            freeShippingText.textContent = `Add ${formatINR(calc.amount_needed_for_free_shipping)} more for Free Express Delivery`;
-          }
-        }
-      }
-    } catch (err) {
-      console.error("Failed to calculate cart:", err);
-    }
-  }
-
-  window.closeCartAndShop = function () {
-    closeCartDrawer();
-    scrollToShop();
-  };
-
-  // =====================================================================
-  // 7. MULTI-STEP CHECKOUT
-  // =====================================================================
-  function initCheckout() {
-    const modal = document.getElementById("checkout-modal");
-    const closeBtn = document.getElementById("close-checkout-modal");
-    const form = document.getElementById("checkout-form");
-    const successView = document.getElementById("checkout-success-view");
-    const successTrackBtn = document.getElementById("success-track-btn");
-    const successContinueBtn = document.getElementById("success-continue-btn");
-
-    closeBtn &&
-      closeBtn.addEventListener("click", () => {
-        modal && modal.classList.remove("active");
-      });
-
-    modal &&
-      modal.addEventListener("click", (e) => {
-        if (e.target === modal) modal.classList.remove("active");
-      });
-
-    form &&
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const submitBtn = document.getElementById("place-order-submit-btn");
-        if (submitBtn) {
-          submitBtn.disabled = true;
-          submitBtn.textContent = "Processing Payment & Reserving Stock...";
-        }
-
-        try {
-          const payload = {
-            customer_name: document.getElementById("co-name").value.trim(),
-            customer_email: document.getElementById("co-email").value.trim(),
-            customer_phone: document.getElementById("co-phone").value.trim(),
-            shipping_address_line1: document.getElementById("co-addr1").value.trim(),
-            shipping_city: document.getElementById("co-city").value.trim(),
-            shipping_state: document.getElementById("co-state").value.trim(),
-            shipping_postal_code: document.getElementById("co-pin").value.trim(),
-            payment_method: document.getElementById("co-payment").value,
-            coupon_code: state.appliedCoupon,
-            items: state.cart.map((i) => ({
-              product_id: i.product_id,
-              variant_id: i.variant_id || 1,
-              quantity: i.quantity,
-              unit_price: i.price,
-            })),
-          };
-
-          const res = await fetch("/api/v1/checkout/place-order", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-
-          if (!res.ok) {
-            const err = unwrap(await res.json());
-            throw new Error(err.detail || "Failed to place order");
-          }
-
-          const order = unwrap(await res.json());
-
-          // Reset cart
-          state.cart = [];
-          state.appliedCoupon = null;
-          saveCart();
-
-          // Display success
-          form.style.display = "none";
-          if (successView) successView.style.display = "block";
-          const receiptEl = document.getElementById("success-order-number");
-          if (receiptEl) receiptEl.textContent = `Order #${order.order_number}`;
-
-          successTrackBtn &&
-            (successTrackBtn.onclick = () => {
-              modal.classList.remove("active");
-              quickTrack(order.order_number);
-              const el = document.getElementById("tracking-section");
-              el && el.scrollIntoView({ behavior: "smooth" });
-            });
-
-          successContinueBtn &&
-            (successContinueBtn.onclick = () => {
-              modal.classList.remove("active");
-              scrollToShop();
-            });
-
-          showToast(`Order #${order.order_number} confirmed!`, "success");
-        } catch (err) {
-          console.error("Order failed:", err);
-          showToast(err.message, "error");
-        } finally {
-          if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.textContent = "🔒 Place Order & Generate Tracking ID";
-          }
-        }
-      });
-  }
-
-  function openCheckoutModal() {
-    const modal = document.getElementById("checkout-modal");
-    const form = document.getElementById("checkout-form");
-    const successView = document.getElementById("checkout-success-view");
-    const payableTotal = document.getElementById("checkout-payable-total");
-
-    if (form) form.style.display = "block";
-    if (successView) successView.style.display = "none";
-
-    if (payableTotal && state.cartCalc) {
-      payableTotal.textContent = formatINR(state.cartCalc.total);
-    }
-
-    if (modal) modal.classList.add("active");
-  }
-
-  // =====================================================================
-  // 8. SIDE-BY-SIDE SHOE COMPARISON (UP TO 4)
-  // =====================================================================
-  function initCompareDrawer() {
-    const openBtn = document.getElementById("open-compare-btn");
-    const closeBtn = document.getElementById("close-compare-drawer");
-    const overlay = document.getElementById("compare-drawer-overlay");
-
-    openBtn && openBtn.addEventListener("click", openCompareDrawer);
-    closeBtn && closeBtn.addEventListener("click", closeCompareDrawer);
-
-    overlay &&
-      overlay.addEventListener("click", (e) => {
-        if (e.target === overlay) closeCompareDrawer();
-      });
-  }
-
-  function updateCompareCounter() {
-    const counter = document.getElementById("compare-counter");
-    if (counter) counter.textContent = state.compareIds.size;
-  }
-
-  function toggleCompare(productId, toggleBtnEl = null) {
-    if (state.compareIds.has(productId)) {
-      state.compareIds.delete(productId);
-      if (toggleBtnEl) toggleBtnEl.classList.remove("active");
-      showToast("Removed shoe from comparison", "info");
-    } else {
-      if (state.compareIds.size >= 4) {
-        showToast("You can compare up to 4 footwear models at once", "warning");
-        return;
-      }
-      state.compareIds.add(productId);
-      if (toggleBtnEl) toggleBtnEl.classList.add("active");
-      showToast("Added shoe to comparison", "success");
-    }
-    saveCompare();
-  }
-
-  async function openCompareDrawer() {
-    const overlay = document.getElementById("compare-drawer-overlay");
-    const container = document.getElementById("compare-matrix-container");
-    if (!overlay || !container) return;
-
-    overlay.classList.add("active");
-
-    if (state.compareIds.size === 0) {
-      container.innerHTML = `
-        <div class="empty-compare-state">
-          <span class="empty-icon">⚖️</span>
-          <h3>No Shoes Selected for Comparison</h3>
-          <p>Click the ⚖️ icon on any shoe card to compare cushioning, weight, heel drop, and materials.</p>
-        </div>
-      `;
-      return;
-    }
-
-    container.innerHTML = `<div class="loading-spinner-box"><div class="spinner"></div><span>Generating comparison matrix...</span></div>`;
-
-    try {
-      const pids = Array.from(state.compareIds).join(",");
-      const res = await fetch(`/api/v1/store/compare?product_ids=${pids}`);
-      const shoes = unwrap(await res.json());
-
-      container.innerHTML = `
-        <div class="compare-table-grid" style="grid-template-columns: 180px repeat(${shoes.length}, 1fr);">
-          <div class="compare-col compare-labels-col">
-            <div class="comp-cell header-cell">Specifications</div>
-            <div class="comp-cell">Category</div>
-            <div class="comp-cell">Price</div>
-            <div class="comp-cell">Upper Material</div>
-            <div class="comp-cell">Sole Technology</div>
-            <div class="comp-cell">Cushioning</div>
-            <div class="comp-cell">Weight</div>
-            <div class="comp-cell">Heel Drop</div>
-            <div class="comp-cell">Waterproof</div>
-            <div class="comp-cell">Available Sizes</div>
-            <div class="comp-cell action-cell">Action</div>
-          </div>
-          ${shoes
-            .map(
-              (s) => `
-            <div class="compare-col">
-              <div class="comp-cell header-cell">
-                <button class="comp-remove-btn" onclick="removeCompareItem(${s.id})">✕</button>
-                <img src="${s.primary_image || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300"}" alt="${s.name}" class="comp-shoe-img">
-                <h4 class="comp-shoe-title">${s.name}</h4>
-              </div>
-              <div class="comp-cell">${s.category_name}</div>
-              <div class="comp-cell price-val">${formatINR(s.base_price)}</div>
-              <div class="comp-cell">${s.upper_material || "Mesh"}</div>
-              <div class="comp-cell">${s.sole_material || "EVA"}</div>
-              <div class="comp-cell">${s.cushioning_level || "Balanced"}</div>
-              <div class="comp-cell">${s.weight_grams ? s.weight_grams + "g" : "280g"}</div>
-              <div class="comp-cell">${s.heel_drop_mm ? s.heel_drop_mm + "mm" : "8mm"}</div>
-              <div class="comp-cell">${s.is_waterproof ? "✅ Yes" : "❌ Standard"}</div>
-              <div class="comp-cell size-chips-list">${(s.available_sizes || []).map((sz) => `<span>UK ${sz}</span>`).join(" ")}</div>
-              <div class="comp-cell action-cell">
-                <button class="btn btn-primary btn-sm btn-block" onclick="openProductDetailModal(${s.id})">View Shoe</button>
-              </div>
-            </div>
-          `
-            )
-            .join("")}
-        </div>
-      `;
-    } catch (err) {
-      console.error("Failed to load compare:", err);
-      container.innerHTML = `<div class="error-msg">Failed to load comparison data.</div>`;
-    }
-  }
-
-  window.removeCompareItem = function (pid) {
-    state.compareIds.delete(pid);
-    saveCompare();
-    openCompareDrawer();
-  };
-
-  function closeCompareDrawer() {
-    const overlay = document.getElementById("compare-drawer-overlay");
-    if (overlay) overlay.classList.remove("active");
-  }
-
-  // =====================================================================
-  // 9. LIVE ORDER TRACKING
-  // =====================================================================
-  function initOrderTracking() {
-    const submitBtn = document.getElementById("track-submit-btn");
-    const input = document.getElementById("track-order-input");
-
-    submitBtn &&
-      submitBtn.addEventListener("click", () => {
-        if (input && input.value.trim()) {
-          trackOrder(input.value.trim());
-        }
-      });
-
-    input &&
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          submitBtn && submitBtn.click();
-        }
-      });
-  }
-
-  window.quickTrack = function (orderId) {
-    const input = document.getElementById("track-order-input");
-    if (input) input.value = orderId;
-    trackOrder(orderId);
-  };
-
-  async function trackOrder(orderNumber) {
-    const resultBox = document.getElementById("tracking-result-box");
-    if (!resultBox) return;
-
-    resultBox.innerHTML = `<div class="loading-spinner-box"><div class="spinner"></div><span>Querying BlueDart Express API...</span></div>`;
-
-    try {
-      const res = await fetch(`/api/v1/orders/${encodeURIComponent(orderNumber)}/track`);
-      if (!res.ok) throw new Error("Order not found");
-      const data = unwrap(await res.json());
-      renderTrackingResult(data);
-    } catch (err) {
-      resultBox.innerHTML = `
-        <div class="track-error-card">
-          <span>❌ Order ID "<strong>${orderNumber}</strong>" not found. Please verify your order number or sample codes.</span>
-        </div>
-      `;
-    }
-  }
-
-  function renderTrackingResult(t) {
-    const resultBox = document.getElementById("tracking-result-box");
-    if (!resultBox) return;
-
-    resultBox.innerHTML = `
-      <div class="track-card-body">
-        <div class="track-header-row">
-          <div>
-            <span class="track-order-id">Order #${t.order_number}</span>
-            <span class="track-status-pill status-${(t.order_status || t.status || "").toLowerCase()}">${(t.order_status || t.status || "In Transit").toUpperCase()}</span>
-          </div>
-          <div class="courier-badge">
-            <span>🚚 ${t.carrier || t.courier_partner || "BlueDart Express"}</span>
-            <span class="awb-code">AWB: ${t.tracking_number || "BLUEDART-894210"}</span>
-          </div>
-        </div>
-
-        <div class="track-timeline">
-          ${(t.milestones || [])
-            .map(
-              (m) => `
-            <div class="timeline-step ${m.completed ? "completed" : "pending"}">
-              <div class="timeline-dot">${m.completed ? "✓" : "○"}</div>
-              <div class="timeline-content">
-                <span class="step-title">${m.title}</span>
-                <span class="step-time">${m.timestamp ? new Date(m.timestamp).toLocaleString("en-IN") : "Pending"}</span>
-                <span class="step-loc">${m.location || ""}</span>
-              </div>
-            </div>
-          `
-            )
-            .join("")}
-        </div>
-
-        <div class="track-order-items">
-          <h4>Items in this Delivery (${t.items ? t.items.length : 0})</h4>
-          <div class="track-items-list">
-            ${(t.items || [])
-              .map(
-                (item) => `
-              <div class="track-item-pill">
-                <span>👟 <strong>${item.product_name}</strong> (UK ${item.size}, ${item.color})</span>
-                <span>Qty: ${item.quantity} • ${formatINR(item.unit_price)}</span>
-              </div>
-            `
-              )
-              .join("")}
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  // =====================================================================
-  // 10. GLOBAL SEARCH MODAL
-  // =====================================================================
-  function initSearch() {
-    const modal = document.getElementById("search-modal");
-    const openBtn = document.getElementById("search-modal-btn");
-    const closeBtn = document.getElementById("close-search-modal");
-    const input = document.getElementById("global-search-input");
-    const grid = document.getElementById("search-live-grid");
-
-    openBtn &&
-      openBtn.addEventListener("click", () => {
-        if (modal) modal.classList.add("active");
-        if (input) {
-          input.value = "";
-          input.focus();
-        }
-        if (grid) grid.innerHTML = "";
-      });
-
-    closeBtn &&
-      closeBtn.addEventListener("click", () => {
-        if (modal) modal.classList.remove("active");
-      });
-
-    modal &&
-      modal.addEventListener("click", (e) => {
-        if (e.target === modal) modal.classList.remove("active");
-      });
-
-    let debounceTimer;
-    input &&
-      input.addEventListener("input", (e) => {
-        clearTimeout(debounceTimer);
-        const query = e.target.value.trim();
-        if (!query) {
-          if (grid) grid.innerHTML = "";
-          return;
-        }
-        debounceTimer = setTimeout(() => executeSearch(query), 250);
-      });
-  }
-
-  window.searchQuick = function (term) {
-    const input = document.getElementById("global-search-input");
-    if (input) {
-      input.value = term;
-      executeSearch(term);
-    }
-  };
-
-  async function executeSearch(query) {
-    const grid = document.getElementById("search-live-grid");
-    if (!grid) return;
-
-    grid.innerHTML = `<div class="loading-spinner-box"><div class="spinner"></div><span>Searching SOLEVAULT database...</span></div>`;
-
-    try {
-      const res = await fetch(`/api/v1/store/search?q=${encodeURIComponent(query)}`);
-      const results = unwrap(await res.json());
-
-      if (results.length === 0) {
-        grid.innerHTML = `<div class="search-empty">No footwear found for "${query}"</div>`;
-        return;
-      }
-
-      grid.innerHTML = results
-        .map(
-          (p) => `
-        <div class="search-result-row" onclick="openProductFromSearch(${p.id})">
-          <img src="${p.primary_image || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=150"}" alt="${p.name}" class="search-thumb">
-          <div class="search-details">
-            <h4 class="search-title">${p.name}</h4>
-            <span class="search-cat">${p.category_name} • ${p.gender}</span>
-          </div>
-          <div class="search-price">${formatINR(p.base_price)}</div>
-        </div>
-      `
-        )
-        .join("");
-    } catch (err) {
-      grid.innerHTML = `<div class="search-empty">Search error. Please try again.</div>`;
-    }
-  }
-
-  window.openProductFromSearch = function (pid) {
-    const modal = document.getElementById("search-modal");
-    if (modal) modal.classList.remove("active");
-    openProductDetailModal(pid);
-  };
-
-  // =====================================================================
-  // 11. EXECUTIVE ADMIN DASHBOARD SUITE
-  // =====================================================================
-  function initAdminDashboard() {
-    const tabs = document.querySelectorAll(".admin-tabs-section .tab-btn");
-    tabs.forEach((tab) => {
-      tab.addEventListener("click", () => {
-        tabs.forEach((t) => t.classList.remove("active"));
-        tab.classList.add("active");
-        const tabTarget = tab.dataset.tab;
-        state.adminActiveTab = tabTarget;
-
-        document.querySelectorAll(".admin-tabs-section .tab-pane").forEach((p) => {
-          p.classList.remove("active");
-          if (p.id === `tab-${tabTarget}`) p.classList.add("active");
-        });
-      });
-    });
-
-    const reseedBtn = document.getElementById("admin-reseed-btn");
-    reseedBtn &&
-      reseedBtn.addEventListener("click", async () => {
-        if (!confirm("Are you sure you want to reset & reseed the SOLEVAULT database?")) return;
-        try {
-          reseedBtn.disabled = true;
-          reseedBtn.textContent = "Resetting DB...";
-          showToast("Resetting database to pristine state...", "info");
-          await loadAdminData();
-          showToast("Database refreshed successfully!", "success");
-        } catch (err) {
-          showToast("Failed to reset database", "error");
-        } finally {
-          reseedBtn.disabled = false;
-          reseedBtn.textContent = "🔄 Reset Demo Database";
-        }
-      });
-  }
-
-  async function loadAdminData() {
-    loadAdminKPIs();
-    loadAdminCharts();
-    loadAdminProducts();
-    loadAdminOrders();
-    loadAdminCustomers();
-  }
-
-  async function loadAdminKPIs() {
-    try {
-      const res = await fetch("/api/v1/admin/kpis");
-      const kpis = unwrap(await res.json());
-
-      const revEl = document.getElementById("kpi-total-revenue");
-      const ordEl = document.getElementById("kpi-total-orders");
-      const prodEl = document.getElementById("kpi-total-products");
-      const stockEl = document.getElementById("kpi-low-stock");
-      const aovEl = document.getElementById("kpi-aov");
-
-      if (revEl) revEl.textContent = formatINR(kpis.total_revenue);
-      if (ordEl) ordEl.textContent = `${kpis.total_orders} Orders`;
-      if (prodEl) prodEl.textContent = `${kpis.total_products} Shoes`;
-      if (stockEl) stockEl.textContent = `${kpis.low_stock_products} Models`;
-      if (aovEl) aovEl.textContent = formatINR(kpis.average_order_value);
-    } catch (err) {
-      console.error("Failed to load admin KPIs:", err);
-    }
-  }
-
-  async function loadAdminCharts() {
-    try {
-      const res = await fetch("/api/v1/admin/analytics/charts");
-      const charts = unwrap(await res.json());
-
-      renderRevenueTrendChart(charts.revenue_trend || []);
-      renderCategoryBarsChart(charts.sales_by_category || []);
-    } catch (err) {
-      console.error("Failed to load admin charts:", err);
-    }
-  }
-
-  function renderRevenueTrendChart(data) {
-    const container = document.getElementById("revenue-trend-chart");
-    if (!container || data.length === 0) return;
-
-    const maxVal = Math.max(...data.map((d) => d.revenue), 10000);
-    const points = data
-      .map((d, i) => {
-        const x = (i / (data.length - 1)) * 360 + 20;
-        const y = 140 - (d.revenue / maxVal) * 110;
-        return `${x},${y}`;
-      })
-      .join(" ");
-
-    container.innerHTML = `
-      <svg viewBox="0 0 400 160" class="svg-chart">
-        <defs>
-          <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.4"/>
-            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.0"/>
-          </linearGradient>
-        </defs>
-        <polygon points="20,150 ${points} 380,150" fill="url(#chartGrad)" />
-        <polyline fill="none" stroke="#3b82f6" stroke-width="3" points="${points}" />
-        ${data
-          .map((d, i) => {
-            const x = (i / (data.length - 1)) * 360 + 20;
-            const y = 140 - (d.revenue / maxVal) * 110;
-            return `
-            <circle cx="${x}" cy="${y}" r="4" fill="#60a5fa" stroke="#1e293b" stroke-width="2">
-              <title>${d.date}: ${formatINR(d.revenue)} (${d.orders} orders)</title>
-            </circle>
-            <text x="${x}" y="158" font-size="9" fill="#94a3b8" text-anchor="middle">${d.date.substring(5)}</text>
-          `;
-          })
-          .join("")}
-      </svg>
-    `;
-  }
-
-  function renderCategoryBarsChart(data) {
-    const container = document.getElementById("category-bars-chart");
-    if (!container) return;
-
-    const maxVal = Math.max(...data.map((d) => d.revenue), 1000);
-    container.innerHTML = data
-      .slice(0, 5)
-      .map(
-        (c) => `
-      <div class="cat-bar-item">
-        <div class="cat-bar-header">
-          <span class="cat-bar-name">${c.category_name}</span>
-          <span class="cat-bar-val">${formatINR(c.revenue)} (${c.sales_count} sold)</span>
-        </div>
-        <div class="cat-bar-bg">
-          <div class="cat-bar-fill" style="width: ${(c.revenue / maxVal) * 100}%;"></div>
-        </div>
-      </div>
-    `
-      )
-      .join("");
-  }
-
-  async function loadAdminProducts() {
-    const tbody = document.getElementById("admin-products-tbody");
-    if (!tbody) return;
-
-    try {
-      const res = await fetch("/api/v1/admin/products");
-      const products = unwrap(await res.json());
-
-      tbody.innerHTML = products
-        .map(
-          (p) => `
-        <tr>
-          <td><code>#${p.id}</code></td>
-          <td>
-            <div class="admin-prod-cell">
-              <img src="${p.primary_image || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100"}" class="admin-prod-thumb">
-              <div>
-                <strong>${p.name}</strong>
-                <small class="admin-sku">SKU: ${p.sku}</small>
-              </div>
-            </div>
-          </td>
-          <td>${p.category_name}</td>
-          <td><strong>${formatINR(p.base_price)}</strong> <small class="admin-mrp">${formatINR(p.mrp)}</small></td>
-          <td>
-            <span class="stock-badge ${p.total_stock > 10 ? "in-stock" : "low-stock"}">
-              ${p.total_stock} in stock
-            </span>
-          </td>
-          <td>⭐ ${p.rating_avg ? p.rating_avg.toFixed(1) : "4.8"} (${p.rating_count || 12})</td>
-          <td>
-            ${p.is_bestseller ? `<span class="flag-chip">Bestseller</span>` : ""}
-            ${p.is_new ? `<span class="flag-chip">New</span>` : ""}
-            ${p.is_limited_edition ? `<span class="flag-chip flag-limited">Limited</span>` : ""}
-          </td>
-          <td>
-            <div class="quick-stock-actions">
-              <button class="btn btn-sm btn-secondary" onclick="adminAdjustStock(${p.id}, 10)">+10</button>
-              <button class="btn btn-sm btn-secondary" onclick="adminAdjustStock(${p.id}, 20)">+20</button>
-            </div>
-          </td>
-        </tr>
-      `
-        )
-        .join("");
-    } catch (err) {
-      console.error("Failed to load admin products:", err);
-    }
-  }
-
-  window.adminAdjustStock = async function (productId, quantityToAdd) {
-    try {
-      const res = await fetch("/api/v1/admin/inventory/adjust", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          product_id: productId,
-          variant_id: 1,
-          warehouse_id: 1,
-          quantity_delta: quantityToAdd,
-          reason: "Admin Quick Restock",
-        }),
-      });
-
-      if (!res.ok) throw new Error("Restock failed");
-      showToast(`Added +${quantityToAdd} stock units!`, "success");
-      loadAdminProducts();
-      loadAdminKPIs();
-    } catch (err) {
-      showToast(err.message, "error");
-    }
-  };
-
-  async function loadAdminOrders() {
-    const tbody = document.getElementById("admin-orders-tbody");
-    if (!tbody) return;
-
-    try {
-      const res = await fetch("/api/v1/admin/orders");
-      const orders = unwrap(await res.json());
-
-      tbody.innerHTML = orders
-        .map(
-          (o) => `
-        <tr>
-          <td><strong>#${o.order_number}</strong></td>
-          <td>
-            <div>${o.customer_name}</div>
-            <small class="admin-email">${o.customer_phone}</small>
-          </td>
-          <td><strong>${formatINR(o.total_amount)}</strong></td>
-          <td><span class="pay-chip">${o.payment_method} (${o.payment_status})</span></td>
-          <td>
-            <select class="admin-status-select status-${(o.status || "").toLowerCase()}" onchange="adminUpdateOrderStatus('${o.order_number}', this.value)">
-              <option value="Processing" ${o.status === "Processing" ? "selected" : ""}>Processing</option>
-              <option value="Shipped" ${o.status === "Shipped" || o.status === "Dispatched" ? "selected" : ""}>Shipped</option>
-              <option value="Delivered" ${o.status === "Delivered" ? "selected" : ""}>Delivered</option>
-              <option value="Cancelled" ${o.status === "Cancelled" ? "selected" : ""}>Cancelled</option>
-            </select>
-          </td>
-          <td><code>${o.tracking_number || "BLUEDART-894210"}</code></td>
-          <td>${new Date(o.created_at).toLocaleDateString("en-IN")}</td>
-          <td>
-            <button class="btn btn-sm btn-secondary" onclick="quickTrack('${o.order_number}'); switchToStoreAndTrack();">Track</button>
-          </td>
-        </tr>
-      `
-        )
-        .join("");
-    } catch (err) {
-      console.error("Failed to load admin orders:", err);
-    }
-  }
-
-  window.adminUpdateOrderStatus = async function (orderNumber, newStatus) {
-    try {
-      const res = await fetch(`/api/v1/admin/orders/${encodeURIComponent(orderNumber)}/status`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!res.ok) throw new Error("Status update failed");
-      showToast(`Order #${orderNumber} updated to ${newStatus}!`, "success");
-      loadAdminOrders();
-      loadAdminKPIs();
-    } catch (err) {
-      showToast(err.message, "error");
-    }
-  };
-
-  window.switchToStoreAndTrack = function () {
-    const btnStore = document.getElementById("mode-store-btn");
-    btnStore && btnStore.click();
-    const trackSection = document.getElementById("tracking-section");
-    trackSection && trackSection.scrollIntoView({ behavior: "smooth" });
-  };
-
-  async function loadAdminCustomers() {
-    const tbody = document.getElementById("admin-customers-tbody");
-    if (!tbody) return;
-
-    const sampleCustomers = [
-      { id: "USR-101", name: "Rohan Patel", email: "rohan@example.com", phone: "+91 98765 43210", role: "Customer", status: "Active" },
-      { id: "USR-102", name: "Priya Sharma", email: "priya@example.com", phone: "+91 98765 43211", role: "VIP Buyer", status: "Active" },
-      { id: "USR-103", name: "Vikram Malhotra", email: "vikram@example.com", phone: "+91 98765 43212", role: "Customer", status: "Active" },
-      { id: "USR-104", name: "Ananya Iyer", email: "ananya@example.com", phone: "+91 98765 43213", role: "Customer", status: "Active" },
-    ];
-
-    tbody.innerHTML = sampleCustomers
-      .map(
-        (c) => `
-      <tr>
-        <td><code>${c.id}</code></td>
-        <td><strong>${c.name}</strong></td>
-        <td>${c.email}</td>
-        <td>${c.phone}</td>
-        <td><span class="flag-chip">${c.role}</span></td>
-        <td><span class="stock-badge in-stock">${c.status}</span></td>
-      </tr>
-    `
-      )
-      .join("");
-  }
-
-  // =====================================================================
-  // 12. WHATSAPP AI SALES AGENT CHAT
-  // =====================================================================
-  function initAIChat() {
-    const sendBtn = document.getElementById("chat-send-btn");
-    const input = document.getElementById("chat-input");
-
-    sendBtn &&
-      sendBtn.addEventListener("click", () => {
-        if (input && input.value.trim()) {
-          sendUserChatMessage(input.value.trim());
-          input.value = "";
-        }
-      });
-
-    input &&
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          sendBtn && sendBtn.click();
-        }
-      });
-
-    // API Key Modal Handlers
-    const openKeyBtn = document.getElementById("open-api-key-modal-btn");
-    const keyModal = document.getElementById("api-key-modal");
-    const closeKeyBtn = document.getElementById("close-api-key-modal");
-    const cancelKeyBtn = document.getElementById("cancel-api-key-btn");
-    const saveKeyBtn = document.getElementById("save-api-key-btn");
-    const keyInput = document.getElementById("gemini-key-input");
-    const statusBadge = document.getElementById("gemini-status-badge");
-
-    const savedKey = localStorage.getItem("solevault_gemini_key");
-    if (savedKey && keyInput) {
-      keyInput.value = savedKey;
-      if (statusBadge) {
-        statusBadge.textContent = "Gemini Live 🟢";
-        statusBadge.style.color = "#25d366";
-      }
-    }
-
-    // Check backend config
-    fetch("/api/chat/config")
-      .then((r) => r.json())
-      .then((cfg) => {
-        if (cfg.gemini_active && statusBadge) {
-          statusBadge.textContent = "Gemini Live 🟢";
-          statusBadge.style.color = "#25d366";
-        }
-      })
-      .catch(() => {});
-
-    function toggleKeyModal(show) {
-      if (keyModal) {
-        if (show) keyModal.classList.add("active");
-        else keyModal.classList.remove("active");
-      }
-    }
-
-    openKeyBtn && openKeyBtn.addEventListener("click", () => toggleKeyModal(true));
-    closeKeyBtn && closeKeyBtn.addEventListener("click", () => toggleKeyModal(false));
-    cancelKeyBtn && cancelKeyBtn.addEventListener("click", () => toggleKeyModal(false));
-
-    saveKeyBtn &&
-      saveKeyBtn.addEventListener("click", async () => {
-        const key = keyInput ? keyInput.value.trim() : "";
-        if (!key) {
-          showToast("Please enter a valid Gemini API Key", "error");
-          return;
-        }
-
-        try {
-          const resp = await fetch("/api/chat/key", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ gemini_api_key: key }),
-          });
-
-          if (resp.ok) {
-            localStorage.setItem("solevault_gemini_key", key);
-            toggleKeyModal(false);
-            if (statusBadge) {
-              statusBadge.textContent = "Gemini Live 🟢";
-              statusBadge.style.color = "#25d366";
-            }
-            showToast("Gemini API Key activated! Live AI chat is ready.", "success");
-          } else {
-            showToast("Failed to activate key. Check format.", "error");
-          }
-        } catch (e) {
-          localStorage.setItem("solevault_gemini_key", key);
-          toggleKeyModal(false);
-          showToast("Gemini API Key saved locally.", "success");
-        }
-      });
-
-    // Initial greeting in chat box
-    const messagesBox = document.getElementById("chat-messages-box");
-    if (messagesBox && messagesBox.children.length === 0) {
-      appendChatMessage(
-        "ai",
-        "Hello! 👟 Welcome to StrideHub Shoes & SoleVault. I am your personal AI Footwear Specialist powered by Google Gemini and live Cloud Firestore inventory. What kind of shoes are you looking for today? Tell me your preferred style, budget, or UK size!"
-      );
-    }
-  }
-
-  function focusChatInput() {
-    const input = document.getElementById("chat-input");
-    if (input) input.focus();
-  }
-
-  window.sendTestMsg = function (msg) {
-    sendUserChatMessage(msg);
-  };
-
-  async function sendUserChatMessage(text) {
-    if (state.isTyping) return;
-    appendChatMessage("user", text);
-
-    const typingIndicator = document.getElementById("typing-indicator");
-    const messagesBox = document.getElementById("chat-messages-box");
-    if (typingIndicator) typingIndicator.style.display = "flex";
-    if (messagesBox) messagesBox.scrollTop = messagesBox.scrollHeight;
-    state.isTyping = true;
-
-    try {
-      const apiKey = localStorage.getItem("solevault_gemini_key") || null;
-      const res = await fetch("/api/chat/message", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          business_id: "stridehub-shoes",
-          phone_number: "+919876543210",
-          customer_name: "Customer",
-          message: text,
-          api_key: apiKey,
-        }),
-      });
-
-      if (!res.ok) throw new Error("Chat assistant response failed");
-      const data = await res.json();
-      appendChatMessage("ai", data.reply_text || "I am checking our live catalog for your exact request.", {
-        products: data.matched_products || [],
-        orderInfo: data.order_info || null,
-        quickReplies: data.quick_replies || []
-      });
-    } catch (err) {
-      appendChatMessage(
-        "ai",
-        "⚡ Verified with our live catalog: StrideFlow Nitro Runner (₹2,999) and StrideAir Zoom Casual Sneaker (₹1,499) are available in stock with Free Express Delivery! Let me know your UK size to confirm fit."
-      );
-    } finally {
-      if (typingIndicator) typingIndicator.style.display = "none";
-      state.isTyping = false;
-    }
-  }
-
-  function appendChatMessage(sender, text, options = {}) {
-    const messagesBox = document.getElementById("chat-messages-box");
-    if (!messagesBox) return;
-
-    const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const msgDiv = document.createElement("div");
-    msgDiv.className = `msg-bubble ${sender === "user" ? "user" : "agent"}`;
-
-    // Format text (newlines, bold markdown)
-    let formattedText = escapeHtml(text)
-      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\n/g, "<br>");
-
-    let html = `<p class="msg-text" style="margin: 0;">${formattedText}</p>`;
-
-    // Render Order Tracking Card if present
-    if (options.orderInfo) {
-      const ord = options.orderInfo;
-      const ordId = ord.order_id || ord.orderNumber || "SH-8942";
-      const status = (ord.status || "dispatched").toUpperCase();
-      const courier = ord.courier_partner || ord.courier_name || "BlueDart Express";
-      const tracking = ord.tracking_id || ord.tracking_number || "BD982341IN";
-      const est = ord.estimated_delivery || "Tomorrow by 4:00 PM";
-      const isDelivered = status === "DELIVERED";
-      const isDispatched = status === "DISPATCHED" || isDelivered;
-
-      html += `
-        <div class="order-tracking-card">
-          <div class="order-card-header">
-            <span>📦 Order #${escapeHtml(ordId)}</span>
-            <span class="order-card-status">${escapeHtml(status)}</span>
-          </div>
-          <div style="font-size: 11.5px; color: #d1d7db; margin-bottom: 4px;">
-            <strong>${escapeHtml(ord.product_name || "Footwear")}</strong>
-          </div>
-          <div class="order-stepper">
-            <div class="step-item active"><span class="step-dot"></span><span>Placed</span></div>
-            <div class="step-item active"><span class="step-dot"></span><span>Confirmed</span></div>
-            <div class="step-item ${isDispatched ? 'active' : ''}"><span class="step-dot"></span><span>Dispatched</span></div>
-            <div class="step-item ${isDelivered ? 'active' : ''}"><span class="step-dot"></span><span>Delivered</span></div>
-          </div>
-          <div style="font-size: 11px; color: #8696a0; margin-top: 6px;">
-            🚚 ${escapeHtml(courier)} • AWB: <code>${escapeHtml(tracking)}</code><br>
-            ⏱️ Est. Delivery: <strong style="color: #25d366;">${escapeHtml(est)}</strong>
-          </div>
-        </div>
-      `;
-    }
-
-    // Render Matching Product Recommendation Cards if present
-    if (options.products && options.products.length > 0) {
-      options.products.slice(0, 3).forEach(p => {
-        const name = p.name || p.title || "Shoe";
-        const price = p.salePrice || p.sale_price || p.price || 1499;
-        const mrp = p.mrp || p.mrp_price || (price * 1.25);
-        const img = p.imageUrl || p.image_url || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400";
-        const sizes = p.availableSizes || p.available_sizes || p.sizes || ["7", "8", "9", "10"];
-        const stock = p.quantity || p.available_quantity || 10;
-        const badge = stock <= 3 ? "Low Stock" : (p.discountPercent ? `${p.discountPercent}% Off` : "In Stock");
-
-        html += `
-          <div class="chat-card-attachment">
-            <img src="${escapeHtml(img)}" class="chat-card-img" alt="${escapeHtml(name)}" onerror="this.src='https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400'">
-            <div class="chat-card-info">
-              <div class="chat-card-name">${escapeHtml(name)}</div>
-              <div class="chat-card-price-row">
-                <span class="chat-card-price">₹${Number(price).toLocaleString('en-IN')}</span>
-                <span class="chat-card-mrp">₹${Number(mrp).toLocaleString('en-IN')}</span>
-                <span class="chat-card-badge">${badge}</span>
-              </div>
-              <div class="chat-card-sizes">Sizes: ${sizes.slice(0, 6).join(', ')}</div>
-              <button class="chat-card-btn" onclick="sendTestMsg('I want to buy ${escapeHtml(name)} in size ${sizes[0] || 9}')">Buy / Order Now ⚡</button>
+            <div class="conv-preview">${this.escapeHtml(c.last_message || 'Start of conversation')}</div>
+            <div style="display: flex; gap: 6px; margin-top: 6px;">
+              <span class="status-badge status-${c.stage}">${c.stage}</span>
+              <span class="score-pill score-${c.score >= 70 ? 'high' : c.score >= 40 ? 'mid' : 'low'}">${c.score:.0f} pts</span>
+              ${isHandoff ? '<span class="status-badge status-human_handoff">⚠️ Handoff</span>' : ''}
             </div>
           </div>
         `;
+      }).join('');
+
+      if (!this.activeCustomerId && conversations.length > 0) {
+        this.selectConversation(conversations[0].customer_id, conversations[0].customer_name);
+      }
+    } catch (err) {
+      console.error('Failed loading inbox:', err);
+    }
+  }
+
+  async selectConversation(customerId, customerName) {
+    this.activeCustomerId = customerId;
+    this.setText('transcript-name', unescape(customerName));
+    this.setText('transcript-phone', customerId);
+
+    // Update active class in list
+    document.querySelectorAll('.conv-item').forEach(el => {
+      el.classList.toggle('active', el.querySelector('.conv-name')?.textContent === unescape(customerName));
+    });
+
+    await this.loadTranscript(customerId);
+    await this.loadInboxCustomerSidebar(customerId);
+  }
+
+  async loadTranscript(customerId, scroll = true) {
+    try {
+      const messages = await crmApi.getTranscript(customerId);
+      const box = document.getElementById('transcript-messages-box');
+      if (!box) return;
+
+      if (!messages.length) {
+        box.innerHTML = '<div class="empty-state">No messages in transcript.</div>';
+        return;
+      }
+
+      box.innerHTML = messages.map(m => {
+        const isUser = m.role === 'user';
+        const timeStr = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return `
+          <div class="chat-bubble ${isUser ? 'user' : 'assistant'}">
+            <div class="bubble-content">${this.escapeHtml(m.content)}</div>
+            <span class="bubble-time">${timeStr} &bull; ${isUser ? 'Customer' : 'AI Agent'}</span>
+          </div>
+        `;
+      }).join('');
+
+      if (scroll) box.scrollTop = box.scrollHeight;
+    } catch (err) {
+      console.error('Failed loading transcript:', err);
+    }
+  }
+
+  async loadInboxCustomerSidebar(customerId) {
+    try {
+      const detailsEl = document.getElementById('inbox-cust-details');
+      if (!detailsEl) return;
+
+      const c360 = await crmApi.getCustomer360(customerId);
+      const cust = c360.customer || {};
+      const lead = c360.lead || {};
+
+      detailsEl.innerHTML = `
+        <div style="margin-bottom: 12px;">
+          <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Contact Number</div>
+          <div style="font-weight: 700;">${cust.phone_number || customerId}</div>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Lead Stage & Score</div>
+          <div style="display: flex; gap: 6px; margin-top: 4px;">
+            <span class="status-badge status-${lead.stage || 'enquired'}">${lead.stage || 'Enquired'}</span>
+            <span class="score-pill score-${(lead.qualification_score || 0) >= 70 ? 'high' : 'mid'}">${lead.qualification_score || 0} / 100</span>
+          </div>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Budget Signal</div>
+          <div>${lead.budget_signal || 'Not specified'}</div>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Timeline</div>
+          <div>${lead.timeline_signal || 'Immediate'}</div>
+        </div>
+        <div style="margin-bottom: 14px;">
+          <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Interested Footwear</div>
+          <div>${(lead.interested_product_names && lead.interested_product_names.join(', ')) || 'Shoe inquiries'}</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <button class="btn btn-sm btn-primary" onclick="crmApp.openLeadDetailModal('${customerId}')">Open Full Lead 360</button>
+          <button class="btn btn-sm btn-secondary" onclick="crmApp.openCreateQuoteModal('${customerId}', '${cust.name || 'Customer'}')">Create Quote</button>
+        </div>
+      `;
+    } catch (err) {
+      console.error('Failed loading inbox customer sidebar:', err);
+    }
+  }
+
+  // 3. Leads Management
+  async loadLeads(params = {}) {
+    try {
+      const stageFilter = document.getElementById('leads-stage-filter')?.value || params.stage || 'all';
+      const scoreFilter = document.getElementById('leads-score-filter')?.value || '0';
+      const search = document.getElementById('leads-search-input')?.value || params.search || '';
+
+      const queryParams = { stage: stageFilter, search };
+      if (scoreFilter !== '0') queryParams.min_score = scoreFilter;
+
+      const leads = await crmApi.getLeads(queryParams);
+      const tbody = document.getElementById('leads-tbody');
+      if (!tbody) return;
+
+      if (!leads.length) {
+        tbody.innerHTML = '<tr><td colspan="11" class="empty-state">No leads match your search criteria.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = leads.map(l => {
+        const score = l.qualification_score || 0;
+        const scoreClass = score >= 70 ? 'high' : score >= 40 ? 'mid' : 'low';
+        const shoesStr = (l.interested_product_names && l.interested_product_names.length) ? l.interested_product_names.join(', ') : (l.need_summary || '--');
+        const isChecked = this.selectedLeads.has(l.lead_id);
+
+        return `
+          <tr>
+            <td><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="crmApp.toggleLeadSelection('${l.lead_id}')"></td>
+            <td><strong>${this.escapeHtml(l.name || 'Customer')}</strong></td>
+            <td><code>${this.escapeHtml(l.contact_number)}</code></td>
+            <td><span class="status-badge status-${l.stage}">${l.stage}</span></td>
+            <td><span class="score-pill score-${scoreClass}">${score:.0f} pts</span></td>
+            <td>${this.escapeHtml(l.budget_signal || '--')}</td>
+            <td>${this.escapeHtml(l.timeline_signal || '--')}</td>
+            <td><span style="font-size: 12px;">${this.escapeHtml(shoesStr)}</span></td>
+            <td><span class="status-badge">${l.source}</span></td>
+            <td>${this.formatTimeAgo(l.updated_at || l.created_at)}</td>
+            <td>
+              <button class="btn btn-sm btn-secondary" onclick="crmApp.openLeadDetailModal('${l.lead_id}')">View 360</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      console.error('Failed loading leads:', err);
+    }
+  }
+
+  toggleLeadSelection(leadId) {
+    if (this.selectedLeads.has(leadId)) {
+      this.selectedLeads.delete(leadId);
+    } else {
+      this.selectedLeads.add(leadId);
+    }
+    const bar = document.getElementById('leads-bulk-bar');
+    const countEl = document.getElementById('leads-selected-count');
+    if (bar && countEl) {
+      if (this.selectedLeads.size > 0) {
+        bar.style.display = 'flex';
+        countEl.textContent = `${this.selectedLeads.size} lead(s) selected`;
+      } else {
+        bar.style.display = 'none';
+      }
+    }
+  }
+
+  async bulkMoveStage(stage) {
+    if (!this.selectedLeads.size) return;
+    try {
+      await crmApi.bulkUpdateLeads({
+        lead_ids: Array.from(this.selectedLeads),
+        stage
       });
+      this.showToast(`Updated ${this.selectedLeads.size} leads to ${stage.toUpperCase()}`, 'success');
+      this.selectedLeads.clear();
+      document.getElementById('leads-bulk-bar').style.display = 'none';
+      this.loadLeads();
+    } catch (err) {
+      this.showToast('Bulk update failed', 'danger');
+    }
+  }
+
+  // 4. Customers Management
+  async loadCustomers(params = {}) {
+    try {
+      const typeFilter = document.getElementById('customers-type-filter')?.value || 'all';
+      const search = document.getElementById('customers-search-input')?.value || '';
+
+      const customers = await crmApi.getCustomers({ customer_type: typeFilter, search });
+      const tbody = document.getElementById('customers-tbody');
+      if (!tbody) return;
+
+      if (!customers.length) {
+        tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No customers found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = customers.map(c => {
+        const spentStr = `₹${(c.total_spent || 0).toLocaleString('en-IN')}`;
+        const aovStr = `₹${(c.average_order_value || 0).toLocaleString('en-IN')}`;
+        const loc = [c.city, c.state].filter(Boolean).join(', ') || 'India';
+        return `
+          <tr>
+            <td><strong>${this.escapeHtml(c.name || 'Customer')}</strong></td>
+            <td><code>${this.escapeHtml(c.phone_number)}</code></td>
+            <td>${this.escapeHtml(c.email || '--')}</td>
+            <td>${this.escapeHtml(loc)}</td>
+            <td><strong>${c.total_orders || 0}</strong></td>
+            <td><strong style="color: var(--success);">${spentStr}</strong></td>
+            <td>${aovStr}</td>
+            <td><span class="status-badge status-${c.customer_type}">${c.customer_type}</span></td>
+            <td>${(c.tags || []).map(t => `<span class="score-pill score-high" style="font-size:10px;">${t}</span>`).join(' ')}</td>
+            <td>
+              <button class="btn btn-sm btn-secondary" onclick="crmApp.openCustomerDetailModal('${c.id}')">Profile 360</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      console.error('Failed loading customers:', err);
+    }
+  }
+
+  // 5. Funnel Pipeline (Kanban)
+  async loadPipeline(showLoading = true) {
+    try {
+      const kanban = await crmApi.getPipeline();
+      const board = document.getElementById('kanban-board');
+      if (!board) return;
+
+      const stages = [
+        { key: 'enquired', label: '1. Enquired', icon: '⚡' },
+        { key: 'engaged', label: '2. Engaged', icon: '💬' },
+        { key: 'quoted', label: '3. Quoted', icon: '📑' },
+        { key: 'nurture', label: '4. Nurture', icon: '🌱' },
+        { key: 'human_handoff', label: '5. Human Handoff', icon: '⚠️' },
+        { key: 'converted', label: '6. Converted', icon: '🎉' }
+      ];
+
+      board.innerHTML = stages.map(s => {
+        const cards = kanban[s.key] || [];
+        return `
+          <div class="kanban-column" data-stage="${s.key}">
+            <div class="kanban-col-header">
+              <span class="kanban-col-title">${s.icon} ${s.label}</span>
+              <span class="kanban-col-count">${cards.length}</span>
+            </div>
+            <div class="kanban-col-cards">
+              ${cards.length ? cards.map(c => this.renderKanbanCard(c)).join('') : '<div class="empty-state" style="padding: 20px 0;">No leads in stage.</div>'}
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch (err) {
+      console.error('Failed loading pipeline:', err);
+    }
+  }
+
+  renderKanbanCard(card) {
+    const score = card.qualification_score || 0;
+    const scoreClass = score >= 70 ? 'high' : score >= 40 ? 'mid' : 'low';
+    const shoeName = (card.interested_product_names && card.interested_product_names[0]) || card.need_summary || 'Shoe Interest';
+
+    return `
+      <div class="kanban-card" onclick="crmApp.openLeadDetailModal('${card.lead_id}')">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+          <strong style="font-size: 13px;">${this.escapeHtml(card.name || 'Customer')}</strong>
+          <span class="score-pill score-${scoreClass}">${score:.0f}</span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 6px;">${this.escapeHtml(card.contact_number)}</div>
+        <div style="font-size: 12px; color: var(--primary); font-weight: 600; margin-bottom: 8px;">${this.escapeHtml(shoeName)}</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--text-dim);">
+          <span>${card.budget_signal || 'No budget'}</span>
+          <span>${this.formatTimeAgo(card.updated_at || card.created_at)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // 6. Product Catalog
+  async loadProducts(params = {}) {
+    try {
+      const category = document.getElementById('products-category-filter')?.value || 'all';
+      const stockStatus = document.getElementById('products-stock-filter')?.value || 'all';
+      const search = document.getElementById('products-search-input')?.value || '';
+
+      const products = await crmApi.getProducts({ category, stock_status: stockStatus, search });
+      this.catalogProducts = products;
+      const tbody = document.getElementById('products-tbody');
+      if (!tbody) return;
+
+      if (!products.length) {
+        tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No footwear products match filters.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = products.map(p => {
+        const sizesStr = (p.availableSizes || []).join(', ');
+        return `
+          <tr>
+            <td>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <img src="${p.imageUrl || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100'}" style="width: 36px; height: 36px; border-radius: 6px; object-fit: cover;">
+                <div>
+                  <strong>${this.escapeHtml(p.name)}</strong>
+                  <div style="font-size: 10px; color: var(--text-dim);">SKU: ${p.sku}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="status-badge">${p.category}</span></td>
+            <td><strong>₹${(p.price || 0).toLocaleString('en-IN')}</strong> <span style="font-size: 11px; color: var(--text-dim); text-decoration: line-through;">₹${(p.mrp || 0).toLocaleString('en-IN')}</span></td>
+            <td><strong>${p.quantity} units</strong></td>
+            <td><span class="status-badge status-${p.stockStatus}">${p.stockStatus.replace('_', ' ')}</span></td>
+            <td><span style="font-size: 11px;">[${sizesStr}]</span></td>
+            <td>⭐ ${p.rating || 4.8}</td>
+            <td>
+              <button class="btn btn-sm btn-secondary" onclick="crmApp.openAdjustStockModal('${p.id}', '${escape(p.name)}')">⚡ Stock &plusmn;</button>
+            </td>
+            <td>
+              <div style="display: flex; gap: 4px;">
+                <button class="btn btn-sm btn-secondary" onclick="crmApp.openProductDetailModal('${p.id}')">Detail</button>
+                <button class="btn btn-sm btn-secondary" onclick="crmApp.duplicateProduct('${p.id}')">Clone</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      console.error('Failed loading products:', err);
+    }
+  }
+
+  // 7. Inventory Overview
+  async loadInventory() {
+    try {
+      const data = await crmApi.getInventoryOverview();
+      this.setText('inv-total-skus', data.total_items || 0);
+      this.setText('inv-in-stock', data.in_stock_count || 0);
+      this.setText('inv-low-stock', data.low_stock_count || 0);
+      this.setText('inv-out-stock', data.out_of_stock_count || 0);
+
+      const tbody = document.getElementById('inventory-tbody');
+      if (!tbody) return;
+
+      const prods = data.products || [];
+      tbody.innerHTML = prods.map(p => `
+        <tr>
+          <td><strong>${this.escapeHtml(p.name)}</strong></td>
+          <td><code>${p.sku}</code></td>
+          <td>Central Bengaluru Warehouse</td>
+          <td><strong style="font-size: 15px;">${p.quantity} units</strong></td>
+          <td>${p.lowStockThreshold || 5} units</td>
+          <td><span class="status-badge status-${p.stockStatus}">${p.stockStatus}</span></td>
+          <td>
+            <button class="btn btn-sm btn-primary" onclick="crmApp.openAdjustStockModal('${p.id}', '${escape(p.name)}')">Adjust Stock</button>
+          </td>
+        </tr>
+      `).join('');
+    } catch (err) {
+      console.error('Failed loading inventory:', err);
+    }
+  }
+
+  // 8. Stock Movements Audit Log
+  async loadMovements(params = {}) {
+    try {
+      const search = document.getElementById('movements-search-input')?.value || '';
+      const movements = await crmApi.getStockMovements({ search });
+      const tbody = document.getElementById('movements-tbody');
+      if (!tbody) return;
+
+      if (!movements.length) {
+        tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No stock movements recorded yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = movements.map(m => {
+        const sign = m.quantity_change > 0 ? '+' : '';
+        const deltaColor = m.quantity_change > 0 ? 'var(--success)' : 'var(--danger)';
+        return `
+          <tr>
+            <td><code>${m.movement_id}</code></td>
+            <td>${new Date(m.created_at).toLocaleString()}</td>
+            <td><strong>${this.escapeHtml(m.product_name)}</strong></td>
+            <td><strong style="color: ${deltaColor}; font-size: 14px;">${sign}${m.quantity_change}</strong></td>
+            <td>${m.previous_quantity}</td>
+            <td><strong>${m.new_quantity}</strong></td>
+            <td><span class="status-badge">${m.reason}</span></td>
+            <td>${m.performed_by}</td>
+            <td><code>${m.reference_id || '--'}</code></td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      console.error('Failed loading stock movements:', err);
+    }
+  }
+
+  // 9. Orders & Fulfillment
+  async loadOrders(params = {}) {
+    try {
+      const statusFilter = document.getElementById('orders-status-filter')?.value || 'all';
+      const search = document.getElementById('orders-search-input')?.value || '';
+
+      const orders = await crmApi.getOrders({ status: statusFilter, search });
+      const tbody = document.getElementById('orders-tbody');
+      if (!tbody) return;
+
+      if (!orders.length) {
+        tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No orders found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = orders.map(o => {
+        const amtStr = `₹${(o.amount || 0).toLocaleString('en-IN')}`;
+        return `
+          <tr>
+            <td><strong>#${o.order_id}</strong></td>
+            <td>${this.escapeHtml(o.customer_name)}</td>
+            <td>${this.escapeHtml(o.product_name || 'Footwear Item')}</td>
+            <td><strong>${amtStr}</strong></td>
+            <td>${o.payment_method}</td>
+            <td><span class="status-badge status-${o.payment_status === 'paid' ? 'converted' : 'quoted'}">${o.payment_status}</span></td>
+            <td><span class="status-badge status-${o.status}">${o.status}</span></td>
+            <td>${o.courier_partner} (<code>${o.tracking_id}</code>)</td>
+            <td>${new Date(o.order_date).toLocaleDateString()}</td>
+            <td>
+              <select class="select-input" style="padding: 4px; font-size: 11px;" onchange="crmApp.updateOrderStatus('${o.order_id}', this.value)">
+                <option value="pending" ${o.status === 'pending' ? 'selected' : ''}>Pending</option>
+                <option value="confirmed" ${o.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
+                <option value="packed" ${o.status === 'packed' ? 'selected' : ''}>Packed</option>
+                <option value="dispatched" ${o.status === 'dispatched' ? 'selected' : ''}>Dispatched</option>
+                <option value="out_for_delivery" ${o.status === 'out_for_delivery' ? 'selected' : ''}>Out for Delivery</option>
+                <option value="delivered" ${o.status === 'delivered' ? 'selected' : ''}>Delivered</option>
+                <option value="cancelled" ${o.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+              </select>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      console.error('Failed loading orders:', err);
+    }
+  }
+
+  async updateOrderStatus(orderId, newStatus) {
+    try {
+      await crmApi.updateOrderStatus(orderId, newStatus);
+      this.showToast(`Order #${orderId} marked as ${newStatus.toUpperCase()}`, 'success');
+      this.loadOrders();
+    } catch (err) {
+      this.showToast('Failed to update status', 'danger');
+    }
+  }
+
+  // 10. Quotes & Invoices
+  async loadQuotes() {
+    try {
+      const quotes = await crmApi.getQuotes();
+      const tbody = document.getElementById('quotes-tbody');
+      if (!tbody) return;
+
+      if (!quotes.length) {
+        tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No quotes generated yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = quotes.map(q => {
+        const amtStr = `₹${(q.total_amount || 0).toLocaleString('en-IN')}`;
+        return `
+          <tr>
+            <td><strong>#${q.quote_id}</strong></td>
+            <td>${this.escapeHtml(q.customer_name)}</td>
+            <td><code>${q.contact_number}</code></td>
+            <td><strong style="color: var(--primary);">${amtStr}</strong></td>
+            <td><span class="status-badge status-${q.status}">${q.status}</span></td>
+            <td><code>${q.invoice_id || '--'}</code></td>
+            <td>${q.valid_until || '7 Days'}</td>
+            <td>${new Date(q.created_at).toLocaleDateString()}</td>
+            <td>
+              <button class="btn btn-sm btn-primary" onclick="crmApp.acceptQuote('${q.quote_id}')">Accept & Invoice</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      console.error('Failed loading quotes:', err);
+    }
+  }
+
+  async acceptQuote(quoteId) {
+    try {
+      await crmApi.updateQuoteStatus(quoteId, 'accepted');
+      this.showToast(`Quote #${quoteId} accepted and invoice generated!`, 'success');
+      this.loadQuotes();
+    } catch (err) {
+      this.showToast('Failed accepting quote', 'danger');
+    }
+  }
+
+  // 11. Tasks & Follow-ups
+  async loadTasks(filterView = 'all') {
+    try {
+      const tasks = await crmApi.getTasks(filterView);
+      const container = document.getElementById('tasks-container');
+      if (!container) return;
+
+      if (!tasks.length) {
+        container.innerHTML = '<div class="empty-state">No follow-up tasks in this view.</div>';
+        return;
+      }
+
+      container.innerHTML = tasks.map(t => {
+        const isDone = t.status === 'completed';
+        return `
+          <div class="kpi-card" style="align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <input type="checkbox" ${isDone ? 'checked' : ''} onchange="crmApp.toggleTaskComplete('${t.task_id}', this.checked)">
+              <div>
+                <strong style="font-size: 14px; text-decoration: ${isDone ? 'line-through' : 'none'};">${this.escapeHtml(t.title)}</strong>
+                <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">
+                  Customer: <strong>${t.customer_name || 'General'}</strong> &bull; Due: ${t.due_date || 'Today'}
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="status-badge status-${t.priority === 'urgent' ? 'human_handoff' : 'engaged'}">${t.priority}</span>
+              <button class="icon-btn" onclick="crmApp.deleteTask('${t.task_id}')">🗑️</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch (err) {
+      console.error('Failed loading tasks:', err);
+    }
+  }
+
+  async toggleTaskComplete(taskId, completed) {
+    try {
+      await crmApi.updateTask(taskId, { status: completed ? 'completed' : 'pending' });
+      this.showToast(completed ? 'Task completed!' : 'Task reopened', 'success');
+      this.loadTasks();
+    } catch (err) {
+      this.showToast('Failed updating task', 'danger');
+    }
+  }
+
+  async deleteTask(taskId) {
+    if (!confirm('Are you sure you want to delete this task?')) return;
+    try {
+      await crmApi.deleteTask(taskId);
+      this.showToast('Task removed', 'info');
+      this.loadTasks();
+    } catch (err) {
+      this.showToast('Failed removing task', 'danger');
+    }
+  }
+
+  // 12. Tags & Segments
+  async loadTags() {
+    try {
+      const tags = await crmApi.getTags();
+      const container = document.getElementById('tags-manager-container');
+      if (!container) return;
+
+      container.innerHTML = tags.map(t => `
+        <div class="kpi-card" style="align-items: center; justify-content: space-between; border-left: 4px solid ${t.color};">
+          <div>
+            <strong>${this.escapeHtml(t.name)}</strong>
+            <div style="font-size: 11px; color: var(--text-dim);">${t.category}</div>
+          </div>
+          <button class="btn btn-sm btn-secondary" onclick="crmApp.deleteTag('${t.tag_id}')">Delete</button>
+        </div>
+      `).join('');
+    } catch (err) {
+      console.error('Failed loading tags:', err);
+    }
+  }
+
+  async deleteTag(tagId) {
+    if (!confirm('Delete this tag?')) return;
+    try {
+      await crmApi.deleteTag(tagId);
+      this.showToast('Tag deleted', 'info');
+      this.loadTags();
+    } catch (err) {
+      this.showToast('Failed deleting tag', 'danger');
+    }
+  }
+
+  // 13. Activity Timeline
+  async loadActivity() {
+    try {
+      const acts = await crmApi.getActivity(50);
+      const feed = document.getElementById('activity-feed-container');
+      if (!feed) return;
+
+      feed.innerHTML = acts.map(a => `
+        <div style="padding: 12px 16px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; margin-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <strong>${this.escapeHtml(a.title)}</strong>
+            <span style="font-size: 11px; color: var(--text-dim);">${new Date(a.created_at).toLocaleString()}</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-muted);">${this.escapeHtml(a.description)}</p>
+          <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px;">Source: ${a.source} &bull; Entity: ${a.entity_type}</div>
+        </div>
+      `).join('');
+    } catch (err) {
+      console.error('Failed loading activity feed:', err);
+    }
+  }
+
+  // 14. Deep Analytics
+  async loadAnalytics() {
+    try {
+      const data = await crmApi.getAnalytics(this.timeRange);
+      this.renderCategoryBars('analytics-category-bars', data.category_sales || []);
+      this.renderFunnelChart('analytics-funnel-bars', data.funnel || {});
+    } catch (err) {
+      console.error('Failed loading analytics:', err);
+    }
+  }
+
+  // 15. Store Settings
+  async loadSettings() {
+    try {
+      const settings = await crmApi.getSettings();
+      const nameEl = document.getElementById('set-store-name');
+      const addrEl = document.getElementById('set-store-address');
+      const hoursEl = document.getElementById('set-store-hours');
+      const shipEl = document.getElementById('set-store-shipping');
+      const retEl = document.getElementById('set-store-return');
+      const exEl = document.getElementById('set-store-exchange');
+
+      if (nameEl) nameEl.value = settings.business_name || 'Starboyz';
+      if (addrEl) addrEl.value = settings.address || '';
+      if (hoursEl) hoursEl.value = settings.working_hours || '';
+      if (shipEl) shipEl.value = settings.shipping_information || '';
+      if (retEl) retEl.value = settings.return_refund_policy || '';
+      if (exEl) exEl.value = settings.exchange_policy || '';
+    } catch (err) {
+      console.error('Failed loading settings:', err);
+    }
+  }
+
+  // 16. Health Diagnostics
+  async loadHealth() {
+    try {
+      const h = await crmApi.getHealth();
+      console.log('Health:', h);
+    } catch (err) {
+      console.error('Failed loading health:', err);
+    }
+  }
+
+  // ===========================================================================
+  // 4. Modals & Detail Drawers
+  // ===========================================================================
+  bindModals() {
+    document.querySelectorAll('.modal-close-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+      });
+    });
+
+    document.getElementById('open-add-lead-btn')?.addEventListener('click', () => {
+      this.showToast('Type a message in terminal_chat.py to automatically create a grounded lead!', 'info');
+    });
+
+    document.getElementById('open-adjust-stock-modal-btn')?.addEventListener('click', () => {
+      this.openAdjustStockModal();
+    });
+
+    document.getElementById('open-create-quote-btn')?.addEventListener('click', () => {
+      this.openCreateQuoteModal();
+    });
+
+    document.getElementById('open-create-task-btn')?.addEventListener('click', () => {
+      this.openModal('task-modal');
+    });
+
+    document.getElementById('open-create-tag-btn')?.addEventListener('click', () => {
+      this.openModal('tag-modal');
+    });
+  }
+
+  openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.classList.add('active');
+  }
+
+  closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.classList.remove('active');
+  }
+
+  async openLeadDetailModal(leadId) {
+    try {
+      const detail = await crmApi.getLead360(leadId);
+      const lead = detail.lead || {};
+      const customer = detail.customer || {};
+      const convs = detail.conversations || [];
+      const score = lead.qualification_score || 0;
+
+      const modal = document.getElementById('lead-modal');
+      const content = document.getElementById('lead-modal-content');
+      if (!modal || !content) return;
+
+      content.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border-subtle); padding-bottom: 16px; margin-bottom: 20px;">
+          <div>
+            <h2 style="font-size: 20px;">${this.escapeHtml(customer.name || lead.name || 'Customer')}</h2>
+            <div style="color: var(--text-muted); font-size: 13px;">${lead.contact_number} &bull; Source: <strong>${lead.source}</strong></div>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <select class="select-input" onchange="crmApp.updateLeadStageFromModal('${lead.lead_id}', this.value)">
+              <option value="enquired" ${lead.stage === 'enquired' ? 'selected' : ''}>Enquired</option>
+              <option value="engaged" ${lead.stage === 'engaged' ? 'selected' : ''}>Engaged</option>
+              <option value="quoted" ${lead.stage === 'quoted' ? 'selected' : ''}>Quoted</option>
+              <option value="nurture" ${lead.stage === 'nurture' ? 'selected' : ''}>Nurture</option>
+              <option value="human_handoff" ${lead.stage === 'human_handoff' ? 'selected' : ''}>Human Handoff</option>
+              <option value="converted" ${lead.stage === 'converted' ? 'selected' : ''}>Converted</option>
+            </select>
+            <span class="score-pill score-${score >= 70 ? 'high' : 'mid'}" style="font-size: 14px; padding: 4px 12px;">${score:.0f} / 100</span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div>
+            <h4>Qualification Signals</h4>
+            <div style="background: var(--bg-surface); padding: 14px; border-radius: 8px; margin-top: 8px; font-size: 13px;">
+              <p><strong>Need:</strong> ${lead.need_summary || 'Shoe recommendation'}</p>
+              <p style="margin-top: 6px;"><strong>Budget:</strong> ${lead.budget_signal || 'Not captured'}</p>
+              <p style="margin-top: 6px;"><strong>Timeline:</strong> ${lead.timeline_signal || 'Immediate'}</p>
+              <p style="margin-top: 6px;"><strong>Interested Shoes:</strong> ${(lead.interested_product_names || []).join(', ') || 'Viewing catalog'}</p>
+            </div>
+          </div>
+
+          <div>
+            <h4>Conversation Messages (${convs.length})</h4>
+            <div style="background: var(--bg-surface); padding: 14px; border-radius: 8px; margin-top: 8px; max-height: 220px; overflow-y: auto;">
+              ${convs.map(m => `
+                <div style="margin-bottom: 8px; font-size: 12px;">
+                  <strong>${m.role === 'user' ? 'Customer' : 'AI Agent'}:</strong> ${this.escapeHtml(m.content)}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+          <button class="btn btn-secondary" onclick="crmApp.closeModal('lead-modal')">Close</button>
+          <button class="btn btn-primary" onclick="crmApp.openCreateQuoteModal('${lead.lead_id}', '${customer.name || 'Customer'}')">Create Quote</button>
+        </div>
+      `;
+
+      this.openModal('lead-modal');
+    } catch (err) {
+      console.error('Failed opening lead detail:', err);
+    }
+  }
+
+  async updateLeadStageFromModal(leadId, stage) {
+    try {
+      await crmApi.updateLeadStage(leadId, stage);
+      this.showToast(`Lead moved to ${stage.toUpperCase()}`, 'success');
+      this.loadLeads();
+    } catch (err) {
+      this.showToast('Stage update failed', 'danger');
+    }
+  }
+
+  async openCustomerDetailModal(customerId) {
+    try {
+      const c360 = await crmApi.getCustomer360(customerId);
+      const cust = c360.customer || {};
+      const orders = c360.orders || [];
+
+      const modal = document.getElementById('customer-modal');
+      const content = document.getElementById('customer-modal-content');
+      if (!modal || !content) return;
+
+      content.innerHTML = `
+        <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 16px; margin-bottom: 20px;">
+          <h2 style="font-size: 20px;">${this.escapeHtml(cust.name || 'Customer')}</h2>
+          <div style="color: var(--text-muted); font-size: 13px;">${cust.phone_number} &bull; ${cust.email || 'No email registered'}</div>
+        </div>
+        <div class="kpi-grid" style="margin-bottom: 20px;">
+          <div class="kpi-card">
+            <span class="kpi-icon">🛍️</span>
+            <div><span class="kpi-label">Orders</span><div class="kpi-value">${cust.total_orders || 0}</div></div>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-icon">💰</span>
+            <div><span class="kpi-label">Total Spent</span><div class="kpi-value" style="color: var(--success);">₹${(cust.total_spent || 0).toLocaleString('en-IN')}</div></div>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-icon">💎</span>
+            <div><span class="kpi-label">AOV</span><div class="kpi-value">₹${(cust.average_order_value || 0).toLocaleString('en-IN')}</div></div>
+          </div>
+        </div>
+        <h4>Order History (${orders.length})</h4>
+        <div style="margin-top: 10px;">
+          ${orders.map(o => `
+            <div style="padding: 10px; background: var(--bg-surface); border-radius: 6px; margin-bottom: 6px; display: flex; justify-content: space-between;">
+              <span><strong>#${o.order_id}</strong> &bull; ${o.product_name}</span>
+              <strong style="color: var(--success);">₹${(o.amount || 0).toLocaleString('en-IN')}</strong>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      this.openModal('customer-modal');
+    } catch (err) {
+      console.error('Failed opening customer modal:', err);
+    }
+  }
+
+  async openProductDetailModal(productId) {
+    try {
+      const data = await crmApi.getProductDetail(productId);
+      const prod = data.product || {};
+      const sales = data.sales || {};
+      const movements = data.stock_movements || [];
+
+      const modal = document.getElementById('product-modal');
+      const content = document.getElementById('product-modal-content');
+      if (!modal || !content) return;
+
+      content.innerHTML = `
+        <div style="display: flex; gap: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 16px; margin-bottom: 20px;">
+          <img src="${prod.imageUrl || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200'}" style="width: 100px; height: 100px; border-radius: 8px; object-fit: cover;">
+          <div>
+            <h2 style="font-size: 20px;">${this.escapeHtml(prod.name)}</h2>
+            <div style="color: var(--text-muted); font-size: 13px;">SKU: <strong>${prod.sku}</strong> &bull; Category: <strong>${prod.category}</strong></div>
+            <div style="margin-top: 8px; font-size: 18px; font-weight: 800; color: var(--primary);">
+              ₹${(prod.price || 0).toLocaleString('en-IN')} <span style="font-size: 13px; color: var(--text-dim); text-decoration: line-through;">MRP ₹${(prod.mrp || 0).toLocaleString('en-IN')}</span>
+            </div>
+          </div>
+        </div>
+        <div class="kpi-grid" style="margin-bottom: 16px;">
+          <div class="kpi-card"><div><span class="kpi-label">Units Sold</span><div class="kpi-value">${sales.units_sold || 0}</div></div></div>
+          <div class="kpi-card"><div><span class="kpi-label">Revenue</span><div class="kpi-value">₹${(sales.revenue || 0).toLocaleString('en-IN')}</div></div></div>
+          <div class="kpi-card"><div><span class="kpi-label">Current Stock</span><div class="kpi-value">${prod.quantity || 0}</div></div></div>
+        </div>
+        <h4>Recent Inventory Movements</h4>
+        <div style="background: var(--bg-surface); padding: 12px; border-radius: 8px; margin-top: 8px; max-height: 180px; overflow-y: auto;">
+          ${movements.map(m => `
+            <div style="font-size: 12px; margin-bottom: 6px; display: flex; justify-content: space-between;">
+              <span>${m.reason} (${m.quantity_change > 0 ? '+' : ''}${m.quantity_change})</span>
+              <span style="color: var(--text-dim);">${new Date(m.created_at).toLocaleDateString()}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      this.openModal('product-modal');
+    } catch (err) {
+      console.error('Failed opening product modal:', err);
+    }
+  }
+
+  async openAdjustStockModal(productId = '', productName = '') {
+    const select = document.getElementById('adj-product-select');
+    if (select) {
+      const products = await crmApi.getProducts();
+      select.innerHTML = products.map(p => `
+        <option value="${p.id}" ${p.id === productId ? 'selected' : ''}>${p.name} (Stock: ${p.quantity})</option>
+      `).join('');
+    }
+    this.openModal('adjust-stock-modal');
+  }
+
+  async openCreateQuoteModal(customerId = '', customerName = '') {
+    const custInput = document.getElementById('quote-cust-name');
+    const phoneInput = document.getElementById('quote-cust-phone');
+    const prodSelect = document.getElementById('quote-product-select');
+
+    if (custInput) custInput.value = customerName || '';
+    if (phoneInput) phoneInput.value = customerId || '+919876543210';
+
+    if (prodSelect) {
+      const products = await crmApi.getProducts();
+      prodSelect.innerHTML = products.map(p => `
+        <option value="${p.id}" data-price="${p.price}">${p.name} — ₹${p.price}</option>
+      `).join('');
     }
 
-    // Render Quick Reply chips if present
-    if (options.quickReplies && options.quickReplies.length > 0) {
-      html += `
-        <div class="chat-quick-replies">
-          ${options.quickReplies.map(qr => `<button class="quick-chip" onclick="sendTestMsg('${escapeHtml(qr).replace(/'/g, "\\'")}')">${escapeHtml(qr)}</button>`).join('')}
+    this.openModal('quote-modal');
+  }
+
+  // ===========================================================================
+  // 5. Forms Binding
+  // ===========================================================================
+  bindForms() {
+    // Adjust Stock Form
+    document.getElementById('adjust-stock-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const productId = document.getElementById('adj-product-select')?.value;
+      const delta = parseInt(document.getElementById('adj-delta')?.value, 10);
+      const reason = document.getElementById('adj-reason')?.value;
+      const reference = document.getElementById('adj-reference')?.value;
+
+      try {
+        await crmApi.adjustInventory({
+          product_id: productId,
+          delta: delta,
+          reason: reason,
+          reference_id: reference
+        });
+        this.showToast('Stock adjusted atomically!', 'success');
+        this.closeModal('adjust-stock-modal');
+        this.refreshCurrentView();
+      } catch (err) {
+        this.showToast('Failed to adjust stock: ' + err.message, 'danger');
+      }
+    });
+
+    // Create Quote Form
+    document.getElementById('create-quote-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const custName = document.getElementById('quote-cust-name')?.value;
+      const custPhone = document.getElementById('quote-cust-phone')?.value;
+      const prodSelect = document.getElementById('quote-product-select');
+      const prodId = prodSelect?.value;
+      const prodName = prodSelect?.options[prodSelect.selectedIndex]?.text.split('—')[0].trim();
+      const price = parseFloat(prodSelect?.options[prodSelect.selectedIndex]?.getAttribute('data-price') || '0');
+      const qty = parseInt(document.getElementById('quote-qty')?.value, 10);
+      const discount = parseFloat(document.getElementById('quote-discount')?.value || '0');
+
+      const subtotal = price * qty;
+      const total = Math.max(0, subtotal - discount);
+
+      try {
+        await crmApi.createQuote({
+          quote_id: `QU-${Math.floor(1000 + Math.random() * 9000)}`,
+          businessId: 'stridehub-shoes',
+          customer_id: custPhone,
+          customer_name: custName,
+          contact_number: custPhone,
+          items: [{ product_id: prodId, product_name: prodName, size: '9', quantity: qty, unit_price: price, total_price: subtotal }],
+          subtotal: subtotal,
+          discount: discount,
+          total_amount: total,
+          status: 'sent'
+        });
+        this.showToast('Quote generated & sent!', 'success');
+        this.closeModal('quote-modal');
+        this.refreshCurrentView();
+      } catch (err) {
+        this.showToast('Failed creating quote', 'danger');
+      }
+    });
+
+    // Create Task Form
+    document.getElementById('create-task-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('task-title-input')?.value;
+      const cust = document.getElementById('task-cust-input')?.value;
+      const dueDate = document.getElementById('task-due-date')?.value;
+      const priority = document.getElementById('task-priority-select')?.value;
+
+      try {
+        await crmApi.createTask({
+          task_id: `task_${Date.now()}`,
+          businessId: 'stridehub-shoes',
+          title,
+          customer_name: cust,
+          due_date: dueDate,
+          priority,
+          status: 'pending'
+        });
+        this.showToast('Task added to schedule', 'success');
+        this.closeModal('task-modal');
+        this.loadTasks();
+      } catch (err) {
+        this.showToast('Failed adding task', 'danger');
+      }
+    });
+
+    // Create Tag Form
+    document.getElementById('create-tag-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('tag-name-input')?.value;
+      const color = document.getElementById('tag-color-input')?.value;
+
+      try {
+        await crmApi.createTag({ name, color, category: 'custom' });
+        this.showToast('Tag created!', 'success');
+        this.closeModal('tag-modal');
+        this.loadTags();
+      } catch (err) {
+        this.showToast('Failed creating tag', 'danger');
+      }
+    });
+
+    // Settings Profile Form
+    document.getElementById('settings-profile-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('set-store-name')?.value;
+      const addr = document.getElementById('set-store-address')?.value;
+      const hours = document.getElementById('set-store-hours')?.value;
+      const ship = document.getElementById('set-store-shipping')?.value;
+      const ret = document.getElementById('set-store-return')?.value;
+      const ex = document.getElementById('set-store-exchange')?.value;
+
+      try {
+        await crmApi.saveSettings({
+          businessId: 'stridehub-shoes',
+          business_name: name,
+          address: addr,
+          working_hours: hours,
+          shipping_information: ship,
+          return_refund_policy: ret,
+          exchange_policy: ex
+        });
+        this.showToast('Store settings updated!', 'success');
+      } catch (err) {
+        this.showToast('Failed saving settings', 'danger');
+      }
+    });
+
+    // Filter Listeners
+    document.getElementById('leads-stage-filter')?.addEventListener('change', () => this.loadLeads());
+    document.getElementById('leads-score-filter')?.addEventListener('change', () => this.loadLeads());
+    document.getElementById('leads-search-input')?.addEventListener('input', () => this.loadLeads());
+
+    document.getElementById('customers-type-filter')?.addEventListener('change', () => this.loadCustomers());
+    document.getElementById('customers-search-input')?.addEventListener('input', () => this.loadCustomers());
+
+    document.getElementById('products-category-filter')?.addEventListener('change', () => this.loadProducts());
+    document.getElementById('products-stock-filter')?.addEventListener('change', () => this.loadProducts());
+    document.getElementById('products-search-input')?.addEventListener('input', () => this.loadProducts());
+
+    document.getElementById('orders-status-filter')?.addEventListener('change', () => this.loadOrders());
+    document.getElementById('orders-search-input')?.addEventListener('input', () => this.loadOrders());
+  }
+
+  // ===========================================================================
+  // 6. Global Search & Hotkeys
+  // ===========================================================================
+  bindSearch() {
+    const searchBtn = document.getElementById('search-modal-btn');
+    const searchInput = document.getElementById('global-search-input');
+    const searchGrid = document.getElementById('search-live-grid');
+
+    searchBtn?.addEventListener('click', () => {
+      this.openModal('search-modal');
+      setTimeout(() => searchInput?.focus(), 100);
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        this.openModal('search-modal');
+        setTimeout(() => searchInput?.focus(), 100);
+      }
+      if (e.key === 'Escape') {
+        this.closeModal('search-modal');
+      }
+    });
+
+    let debounceTimer;
+    searchInput?.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      const query = searchInput.value.trim();
+      if (!query) {
+        searchGrid.innerHTML = '<div class="empty-state">Type a search query to explore across all CRM business entities.</div>';
+        return;
+      }
+
+      debounceTimer = setTimeout(async () => {
+        try {
+          const results = await crmApi.search(query);
+          this.renderSearchResults(results);
+        } catch (err) {
+          console.error('Search failed:', err);
+        }
+      }, 250);
+    });
+  }
+
+  renderSearchResults(results) {
+    const grid = document.getElementById('search-live-grid');
+    if (!grid) return;
+
+    let html = '';
+
+    if (results.leads?.length) {
+      html += '<h4 style="color: var(--primary); margin: 12px 0 6px;">Leads</h4>';
+      html += results.leads.map(l => `
+        <div class="conv-item" onclick="crmApp.closeModal('search-modal'); crmApp.openLeadDetailModal('${l.id}')">
+          <strong>${this.escapeHtml(l.title)}</strong> &bull; ${l.subtitle}
+        </div>
+      `).join('');
+    }
+
+    if (results.products?.length) {
+      html += '<h4 style="color: var(--primary); margin: 12px 0 6px;">Footwear Catalog</h4>';
+      html += results.products.map(p => `
+        <div class="conv-item" onclick="crmApp.closeModal('search-modal'); crmApp.openProductDetailModal('${p.id}')">
+          <strong>${this.escapeHtml(p.title)}</strong> &bull; ${p.subtitle}
+        </div>
+      `).join('');
+    }
+
+    if (results.orders?.length) {
+      html += '<h4 style="color: var(--primary); margin: 12px 0 6px;">Orders</h4>';
+      html += results.orders.map(o => `
+        <div class="conv-item" onclick="crmApp.closeModal('search-modal'); crmApp.switchView('orders')">
+          <strong>${this.escapeHtml(o.title)}</strong> &bull; ${o.subtitle}
+        </div>
+      `).join('');
+    }
+
+    if (!html) {
+      html = '<div class="empty-state">No matching CRM records found.</div>';
+    }
+
+    grid.innerHTML = html;
+  }
+
+  // ===========================================================================
+  // 7. Interactive SVG Chart Renderers
+  // ===========================================================================
+  renderSvgTrendChart(containerId, points, prefix = '') {
+    const container = document.getElementById(containerId);
+    if (!container || !points.length) return;
+
+    const width = container.clientWidth || 400;
+    const height = 180;
+    const padding = 24;
+
+    const maxVal = Math.max(...points.map(p => p.value), 10);
+    const minVal = 0;
+
+    const stepX = (width - padding * 2) / Math.max(1, points.length - 1);
+    const scaleY = (height - padding * 2) / (maxVal - minVal);
+
+    const coords = points.map((p, i) => {
+      const x = padding + i * stepX;
+      const y = height - padding - (p.value - minVal) * scaleY;
+      return { x, y, label: p.date, val: p.value };
+    });
+
+    const pathD = coords.reduce((acc, c, i) => {
+      return i === 0 ? `M ${c.x} ${c.y}` : `${acc} L ${c.x} ${c.y}`;
+    }, '');
+
+    const areaD = `${pathD} L ${coords[coords.length - 1].x} ${height - padding} L ${coords[0].x} ${height - padding} Z`;
+
+    const svg = `
+      <svg width="100%" height="100%" viewBox="0 0 ${width} ${height}">
+        <defs>
+          <linearGradient id="grad-${containerId}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.0"/>
+          </linearGradient>
+        </defs>
+        <path d="${areaD}" fill="url(#grad-${containerId})" />
+        <path d="${pathD}" fill="none" stroke="#3b82f6" stroke-width="2.5" />
+        ${coords.map(c => `
+          <circle cx="${c.x}" cy="${c.y}" r="3.5" fill="#60a5fa" stroke="#090d12" stroke-width="1.5" />
+        `).join('')}
+      </svg>
+    `;
+
+    container.innerHTML = svg;
+  }
+
+  renderFunnelChart(containerId, funnelCounts) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const stages = Object.entries(funnelCounts);
+    const maxVal = Math.max(...stages.map(([_, v]) => v), 1);
+
+    container.innerHTML = stages.map(([stage, count]) => {
+      const pct = Math.round((count / maxVal) * 100);
+      return `
+        <div class="funnel-bar-row">
+          <div class="funnel-bar-label-row">
+            <span>${stage}</span>
+            <strong>${count} leads</strong>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width: ${pct}%;"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  renderTopProductsList(containerId, products) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    container.innerHTML = products.map((p, i) => `
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px;">
+        <div>
+          <strong>${i + 1}. ${this.escapeHtml(p.name)}</strong>
+          <div style="font-size: 11px; color: var(--text-dim);">${p.units_sold || 0} units &bull; Stock: ${p.stock}</div>
+        </div>
+        <strong style="color: var(--success);">₹${(p.revenue || 0).toLocaleString('en-IN')}</strong>
+      </div>
+    `).join('');
+  }
+
+  renderCategoryBars(containerId, catSales) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const maxRev = Math.max(...catSales.map(c => c.revenue), 1000);
+
+    container.innerHTML = catSales.map(c => {
+      const pct = Math.round((c.revenue / maxRev) * 100);
+      return `
+        <div class="funnel-bar-row">
+          <div class="funnel-bar-label-row">
+            <span>${c.category}</span>
+            <strong>₹${c.revenue.toLocaleString('en-IN')}</strong>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width: ${pct}%; background: #10b981;"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ===========================================================================
+  // 8. Storefront & Live Chat Compatibility
+  // ===========================================================================
+  async loadStorefrontProducts() {
+    const grid = document.getElementById('store-products-grid');
+    if (!grid) return;
+    const products = await crmApi.getProducts();
+    grid.innerHTML = products.map(p => `
+      <div class="kpi-card" style="flex-direction: column;">
+        <img src="${p.imageUrl}" style="width: 100%; height: 160px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;">
+        <h3>${p.name}</h3>
+        <p style="color: var(--text-muted); font-size: 12px; margin: 4px 0 12px;">${p.description}</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <strong style="font-size: 16px; color: var(--primary);">₹${p.price}</strong>
+          <span class="status-badge status-${p.stockStatus}">${p.stockStatus}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  initLiveChat() {
+    const box = document.getElementById('chat-messages-box');
+    const input = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('chat-send-btn');
+
+    if (!box) return;
+    if (box.children.length === 0) {
+      box.innerHTML = `
+        <div class="chat-bubble assistant">
+          Hello! Welcome to Starboyz Shoes. What kind of shoes are you looking for today?
         </div>
       `;
     }
 
-    html += `<span class="msg-time">${timeStr} ${sender === "user" ? "✓✓" : ""}</span>`;
+    const sendHandler = async () => {
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
 
-    msgDiv.innerHTML = html;
-    messagesBox.appendChild(msgDiv);
-    messagesBox.scrollTop = messagesBox.scrollHeight;
+      box.innerHTML += `<div class="chat-bubble user">${this.escapeHtml(text)}</div>`;
+      box.scrollTop = box.scrollHeight;
+
+      try {
+        const res = await fetch('/api/chat/message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text, history: [] })
+        });
+        const data = await res.json();
+        box.innerHTML += `<div class="chat-bubble assistant">${this.escapeHtml(data.reply_text || data.reply || 'Thank you for your message!')}</div>`;
+        box.scrollTop = box.scrollHeight;
+      } catch (err) {
+        box.innerHTML += `<div class="chat-bubble assistant">Thank you! Our AI Sales Assistant has recorded your requirement.</div>`;
+      }
+    };
+
+    sendBtn?.addEventListener('click', sendHandler);
+    input?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendHandler();
+    });
   }
 
-  function escapeHtml(str) {
-    if (!str) return "";
+  // ===========================================================================
+  // Utilities
+  // ===========================================================================
+  setText(elementId, text) {
+    const el = document.getElementById(elementId);
+    if (el) el.textContent = text;
+  }
+
+  formatTimeAgo(isoStr) {
+    if (!isoStr) return 'just now';
+    const diff = (Date.now() - new Date(isoStr).getTime()) / 1000;
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+  }
+
+  escapeHtml(str) {
+    if (!str) return '';
     return String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
-})();
+}
+
+// Global Application Singleton
+const crmApp = new CrmApplication();
+
+document.addEventListener('DOMContentLoaded', () => {
+  crmApp.init();
+});

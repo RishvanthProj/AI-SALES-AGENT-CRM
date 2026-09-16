@@ -332,7 +332,7 @@ def handle_checkout_flow(user_input: str, history: List[Dict[str, str]]) -> Opti
 
 
 def finalize_order(is_cod: bool, lang: str = "english") -> str:
-    """Creates a verified OrderDocument in Cloud Firestore and decrements inventory atomically."""
+    """Creates a verified OrderDocument in Cloud Firestore, decrements inventory atomically, and updates CRM."""
     global checkout_session
     prod = checkout_session["product"]
     size = checkout_session["size"]
@@ -341,15 +341,23 @@ def finalize_order(is_cod: bool, lang: str = "english") -> str:
     addr = checkout_session["delivery_address"] or "Bangalore, Karnataka"
     pay_method = "Cash on Delivery" if is_cod else "UPI (Paid Online)"
     pay_status = "pending" if is_cod else "paid"
+    cust_id = "+919876543210"
 
     # Generate unique Order ID and Tracking ID
     rand_id = random.randint(1000, 9999)
     order_id = f"SB-{rand_id}"
     tracking_id = f"BD{random.randint(100000, 999999)}IN"
 
-    # Decrement inventory in Cloud Firestore atomically
+    # Decrement inventory in Cloud Firestore atomically with audit movement
     try:
-        firebase_service.atomic_update_inventory("stridehub-shoes", prod.id, -1)
+        firebase_service.atomic_update_inventory(
+            business_id="stridehub-shoes",
+            product_id=prod.id,
+            quantity_delta=-1,
+            reason="order_placed",
+            reference_id=order_id,
+            performed_by="terminal_chat"
+        )
     except Exception:
         pass
 
@@ -357,9 +365,10 @@ def finalize_order(is_cod: bool, lang: str = "english") -> str:
     order_doc = OrderDocument(
         order_id=order_id,
         businessId="stridehub-shoes",
-        customer_id="+919876543210",
+        customer_id=cust_id,
         customer_name=name,
-        contact_number="+919876543210",
+        contact_number=cust_id,
+        lead_id=cust_id,
         product_id=prod.id,
         product_name=f"{prod.name} (UK Size {size})",
         quantity=1,
@@ -374,6 +383,17 @@ def finalize_order(is_cod: bool, lang: str = "english") -> str:
         order_date=datetime.now(timezone.utc).isoformat()
     )
     firebase_service.save_order("stridehub-shoes", order_doc)
+
+    # Advance Lead State to Converted in CRM
+    try:
+        lead = firebase_service.get_lead_state("stridehub-shoes", cust_id)
+        if lead:
+            lead.stage = "converted"
+            lead.qualification_score = 100.0
+            lead.last_activity = datetime.now(timezone.utc).isoformat()
+            firebase_service.save_lead_state("stridehub-shoes", cust_id, lead.model_dump())
+    except Exception:
+        pass
 
     # Reset checkout session
     checkout_session = {
@@ -435,7 +455,6 @@ def finalize_order(is_cod: bool, lang: str = "english") -> str:
 
 def strip_emojis(text: str) -> str:
     """Removes emojis and emoticons from text."""
-    # Match emoji Unicode ranges
     emoji_pattern = re.compile(
         "["
         "\U0001F600-\U0001F64F"  # emoticons
@@ -460,17 +479,36 @@ def process_message(
     business_id: str = "stridehub-shoes"
 ) -> Dict[str, Any]:
     """
-    Processes a customer message using Firestore grounding and Gemini.
+    Processes a customer message using Firestore grounding and Gemini,
+    and synchronizes CRM leads, qualification scores, and conversation messages.
     """
     global checkout_session
+    customer_id = "+919876543210"
+
+    # Synchronize Customer Record
+    try:
+        firebase_service.get_or_create_customer(business_id, customer_id, name="Customer")
+    except Exception:
+        pass
+
+    # Record Customer Message in Firestore
+    try:
+        firebase_service.record_conversation_message(business_id, customer_id, "user", user_input)
+    except Exception:
+        pass
 
     # Check for checkout flow triggers
     checkout_triggers = ["checkout", "buy", "order this", "place order", "i want to buy", "book this", "purchase", "confirm order"]
     if checkout_session["active"] or any(trig in user_input.lower() for trig in checkout_triggers):
         checkout_reply = handle_checkout_flow(user_input, history)
         if checkout_reply:
+            cleaned_rep = strip_emojis(checkout_reply)
+            try:
+                firebase_service.record_conversation_message(business_id, customer_id, "assistant", cleaned_rep)
+            except Exception:
+                pass
             return {
-                "reply_text": strip_emojis(checkout_reply),
+                "reply_text": cleaned_rep,
                 "matched_products": [],
                 "order_info": None
             }
@@ -521,7 +559,44 @@ def process_message(
         "address": getattr(b_settings, "address", "Starboyz Flagship Store, Bengaluru")
     }
 
-    # 4. Build Grounded Context
+    # 4. Synchronize Lead State & Scoring in CRM
+    try:
+        score_need = 30.0 if bool(sales_info.product_query or matched_products) else 10.0
+        score_budget = 40.0 if sales_info.budget else 0.0
+        score_timeline = 30.0 if sales_info.timeline else 0.0
+        tot_score = min(100.0, score_need + score_budget + score_timeline)
+
+        target_stage = "enquired"
+        if tot_score >= 70.0 and sales_info.budget:
+            target_stage = "quoted"
+        elif sales_info.budget or sales_info.timeline:
+            target_stage = "engaged"
+
+        matched_p_ids = [p.id for p in matched_products[:3]]
+        matched_p_names = [p.name for p in matched_products[:3]]
+
+        lead_data = {
+            "lead_id": customer_id,
+            "businessId": business_id,
+            "customer_id": customer_id,
+            "contact_number": customer_id,
+            "name": "Customer",
+            "stage": target_stage,
+            "qualification_score": tot_score,
+            "score_breakdown": {"need": score_need, "budget": score_budget, "timeline": score_timeline, "engagement": tot_score},
+            "budget_signal": f"Rs. {sales_info.budget:,.0f}" if sales_info.budget else None,
+            "timeline_signal": sales_info.timeline,
+            "need_summary": query_text,
+            "interested_products": matched_p_ids,
+            "interested_product_names": matched_p_names,
+            "last_interaction": datetime.now(timezone.utc).isoformat(),
+            "last_activity": datetime.now(timezone.utc).isoformat()
+        }
+        firebase_service.save_lead_state(business_id, customer_id, lead_data)
+    except Exception as e:
+        logger.warning(f"Note: CRM lead sync notice: {e}")
+
+    # 5. Build Grounded Context
     context = GroundedResponseContext(
         business_name="Starboyz",
         business_description="Starboyz Footwear - Style, Performance and Comfort",
@@ -535,11 +610,11 @@ def process_message(
         business_policies=policies_dict
     )
 
-    # 5. Generate AI Response with suppressed third-party stderr warnings
+    # 6. Generate AI Response with suppressed third-party stderr warnings
     with suppress_stderr():
         reply_text = gemini_service.generate_conversational_response(context)
 
-    # 6. Validate anti-hallucination
+    # 7. Validate anti-hallucination
     validation_res = validation_service.validate_and_sanitize_response(
         generated_reply=reply_text,
         verified_products=verified_catalog,
@@ -549,6 +624,12 @@ def process_message(
     )
 
     final_reply = strip_emojis(validation_res.sanitized_text or reply_text)
+
+    # Record Assistant Message in Firestore
+    try:
+        firebase_service.record_conversation_message(business_id, customer_id, "assistant", final_reply)
+    except Exception:
+        pass
 
     # Show product recommendation cards ONLY when customer specifies budget/size or asks about a specific shoe
     is_specific_query = any(

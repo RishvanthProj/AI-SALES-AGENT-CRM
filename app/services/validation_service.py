@@ -73,12 +73,36 @@ class ValidationService:
             avail_sizes = inventory_data.get("available_sizes", [])
             avail_colors = inventory_data.get("available_colors", [])
 
+            # Invalid size check: if customer asked for a size not in available_sizes
+            size_violation = False
+            req_size_match = re.search(r'\b(?:size\s+)?(xxl|xl|l|m|s|xs|\d{1,2})\b', customer_message, re.IGNORECASE)
+            if req_size_match and avail_sizes:
+                req_size = req_size_match.group(1).upper()
+                if req_size not in [s.upper() for s in avail_sizes]:
+                    if req_size in sanitized.upper() and ("available" in sanitized.lower() or "yes, we have" in sanitized.lower() or "yes" in sanitized.lower()):
+                        sizes_str = ", ".join(avail_sizes)
+                        violations.append(f"Invalid size accepted: {req_size} is not in {avail_sizes}")
+                        sanitized = f"Size {req_size} isn't available for this product. The available sizes are {sizes_str}."
+                        size_violation = True
+
+            # Invalid color check: if customer asked for a color not in available_colors
+            color_violation = False
+            if avail_colors:
+                for c in ["yellow", "green", "pink", "purple", "orange"]:
+                    if c in customer_message.lower() and c not in [ac.lower() for ac in avail_colors]:
+                        if f"yes, {c}" in sanitized.lower() or f"{c} is available" in sanitized.lower() or f"yes {c}" in sanitized.lower() or "available" in sanitized.lower():
+                            colors_str = ", ".join(avail_colors)
+                            violations.append(f"Invalid color accepted: {c} not in {avail_colors}")
+                            sanitized = f"{c.capitalize()} is not available for this item. We currently have {colors_str}."
+                            color_violation = True
+
             # Out of stock check
-            if not is_avail or actual_stock == 0:
-                positive_claims = ["is available", "in stock", "we have it", "yes, available", "you can buy"]
-                if any(claim in sanitized.lower() for claim in positive_claims):
-                    violations.append(f"False availability: AI claimed '{p_name}' is in stock, but stock is 0.")
-                    sanitized = f"The {p_name} is currently out of stock. I can help you check another option!"
+            if not size_violation and not color_violation:
+                if not is_avail or actual_stock == 0:
+                    positive_claims = ["is available", "in stock", "we have it", "yes, available", "you can buy"]
+                    if any(claim in sanitized.lower() for claim in positive_claims):
+                        violations.append(f"False availability: AI claimed '{p_name}' is in stock, but stock is 0.")
+                        sanitized = f"The {p_name} is currently out of stock. I can help you check another option!"
 
             # False stock count check
             stock_mentions = re.findall(r'(\d+)\s+(?:in stock|left|pieces available|units available|available)', sanitized, re.IGNORECASE)
@@ -92,25 +116,6 @@ class ValidationService:
                         sanitized,
                         flags=re.IGNORECASE
                     )
-
-            # Invalid size check: if customer asked for a size not in available_sizes
-            req_size_match = re.search(r'\b(?:size\s+)?(xxl|xl|l|m|s|xs|\d{1,2})\b', customer_message, re.IGNORECASE)
-            if req_size_match and avail_sizes:
-                req_size = req_size_match.group(1).upper()
-                if req_size not in [s.upper() for s in avail_sizes]:
-                    if req_size in sanitized.upper() and ("available" in sanitized.lower() or "yes, we have" in sanitized.lower()):
-                        sizes_str = ", ".join(avail_sizes)
-                        violations.append(f"Invalid size accepted: {req_size} is not in {avail_sizes}")
-                        sanitized = f"Size {req_size} isn't available for this product. The available sizes are {sizes_str}."
-
-            # Invalid color check: if customer asked for a color not in available_colors
-            if avail_colors:
-                for c in ["yellow", "green", "pink", "purple", "orange"]:
-                    if c in customer_message.lower() and c not in [ac.lower() for ac in avail_colors]:
-                        if f"yes, {c}" in sanitized.lower() or f"{c} is available" in sanitized.lower():
-                            colors_str = ", ".join(avail_colors)
-                            violations.append(f"Invalid color accepted: {c} not in {avail_colors}")
-                            sanitized = f"{c.capitalize()} is not available for this item. We currently have {colors_str}."
 
         # 3. Product Not Found Validation
         if inventory_data and not inventory_data.get("found") and not verified_products:

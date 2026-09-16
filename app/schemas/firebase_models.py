@@ -33,7 +33,7 @@ class ProductDocument(BaseModel):
     collection: Optional[str] = "2026 Performance"
     description: str = ""
     aiDescription: Optional[str] = None
-    primaryColor: Optional[str] = "Black"
+    primaryColor: Optional[str] = None
     secondaryColor: Optional[str] = None
     colorFamily: Optional[str] = "Dark"
     pattern: Optional[str] = "Solid"
@@ -130,10 +130,17 @@ class ProductDocument(BaseModel):
                 data["available_quantity"] = data["quantity"]
 
             # Sizes normalization
-            if "sizes" in data and not data.get("availableSizes"):
+            if "sizes" in data:
                 data["availableSizes"] = data["sizes"]
-            elif "availableSizes" in data and not data.get("sizes"):
+            elif "availableSizes" in data:
                 data["sizes"] = data["availableSizes"]
+
+            # Colors normalization
+            if "colors" in data:
+                if not data.get("primaryColor") and data["colors"]:
+                    data["primaryColor"] = data["colors"][0]
+            elif "primaryColor" in data and data["primaryColor"] and not data.get("colors"):
+                data["colors"] = [data["primaryColor"]]
         return data
 
     @property
@@ -174,6 +181,105 @@ class OfferDocument(BaseModel):
     valid_until: Optional[str] = None
 
 
+class StockMovementDocument(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    movement_id: str
+    businessId: str = "stridehub-shoes"
+    product_id: str
+    product_name: str
+    quantity_change: int  # +5, -1, etc.
+    previous_quantity: int
+    new_quantity: int
+    reason: str = "manual_adjustment"  # order_placed, manual_adjustment, restock, damaged, return, audit
+    reference_id: Optional[str] = None  # e.g., order_id, ticket_id
+    performed_by: str = "system"  # admin, terminal_chat, ai_sales_agent
+    created_at: Optional[str] = None
+
+
+class OrderItemDocument(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    product_id: str
+    product_name: str
+    size: str
+    color: str = "Standard"
+    quantity: int = 1
+    unit_price: float = 0.0
+    total_price: float = 0.0
+
+
+class QuoteDocument(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    quote_id: str
+    businessId: str = "stridehub-shoes"
+    customer_id: str
+    customer_name: str
+    contact_number: str
+    lead_id: Optional[str] = None
+    items: List[OrderItemDocument] = Field(default_factory=list)
+    subtotal: float = 0.0
+    discount: float = 0.0
+    tax: float = 0.0
+    total_amount: float = 0.0
+    status: str = "draft"  # draft, sent, accepted, rejected, paid, converted_to_order
+    valid_until: Optional[str] = None
+    invoice_id: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+class TaskDocument(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    task_id: str
+    businessId: str = "stridehub-shoes"
+    title: str
+    description: Optional[str] = None
+    customer_id: Optional[str] = None
+    customer_name: Optional[str] = None
+    lead_id: Optional[str] = None
+    due_date: Optional[str] = None
+    priority: str = "medium"  # low, medium, high, urgent
+    assigned_user: str = "Admin"
+    status: str = "pending"  # pending, in_progress, completed, cancelled
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+class NoteDocument(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    note_id: str
+    businessId: str = "stridehub-shoes"
+    entity_type: str  # lead, customer, order, product
+    entity_id: str
+    author: str = "Admin"
+    content: str
+    created_at: Optional[str] = None
+
+
+class TagDocument(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    tag_id: str
+    businessId: str = "stridehub-shoes"
+    name: str
+    color: str = "#3b82f6"
+    category: str = "general"
+    created_at: Optional[str] = None
+
+
+class ActivityDocument(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    activity_id: str
+    businessId: str = "stridehub-shoes"
+    entity_type: str  # lead, customer, order, product, inventory
+    entity_id: str
+    event_type: str  # lead_created, message_sent, stage_changed, score_updated, stock_adjusted, order_placed, quote_created, task_completed, note_added, human_handoff
+    title: str
+    description: str
+    source: str = "system"  # terminal_chat, ai_agent, crm_web, system
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    created_at: Optional[str] = None
+
+
 class CustomerDocument(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     id: str
@@ -183,9 +289,20 @@ class CustomerDocument(BaseModel):
     email: Optional[str] = None
     address: Optional[str] = None
     city: Optional[str] = None
+    state: Optional[str] = None
     pincode: Optional[str] = None
     shoe_size_preference: Optional[str] = None
     preferred_category: Optional[str] = None
+    customer_type: str = "new"  # new, returning, inactive, high_value
+    total_orders: int = 0
+    total_spent: float = 0.0
+    average_order_value: float = 0.0
+    first_purchase_date: Optional[str] = None
+    last_purchase_date: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+    product_interests: List[str] = Field(default_factory=list)
+    purchased_products: List[str] = Field(default_factory=list)
+    last_activity: Optional[str] = None
     preferences: Dict[str, Any] = Field(default_factory=dict)
     previous_interactions: List[Dict[str, Any]] = Field(default_factory=list)
     previous_orders: List[str] = Field(default_factory=list)
@@ -195,17 +312,6 @@ class CustomerDocument(BaseModel):
     updated_at: Optional[str] = None
 
 
-class OrderItemDocument(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    product_id: str
-    product_name: str
-    size: str
-    color: str
-    quantity: int
-    unit_price: float
-    total_price: float
-
-
 class OrderDocument(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     order_id: str
@@ -213,20 +319,25 @@ class OrderDocument(BaseModel):
     customer_id: str
     customer_name: str
     contact_number: str
+    lead_id: Optional[str] = None
     items: List[OrderItemDocument] = Field(default_factory=list)
     product_id: Optional[str] = None
     product_name: Optional[str] = None
     quantity: int = 1
+    subtotal: float = 0.0
+    discount: float = 0.0
     amount: float = 0.0
     payment_method: str = "Cash on Delivery"
-    payment_status: str = "pending"
-    status: str = "confirmed"
+    payment_status: str = "pending"  # pending, paid, refunded, failed
+    status: str = "confirmed"  # pending, confirmed, packed, dispatched, out_for_delivery, delivered, cancelled, refunded
     delivery_address: str = "Bangalore, Karnataka"
     courier_partner: str = "BlueDart Express"
     tracking_id: str = "BD982341IN"
     estimated_delivery: str = "3-4 Business Days"
     order_date: Optional[str] = None
+    notes: Optional[str] = None
     delivery_info: Dict[str, Any] = Field(default_factory=dict)
+    timeline_events: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class BusinessSettingsDocument(BaseModel):
@@ -256,17 +367,28 @@ class LeadCRMDocument(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     lead_id: str
     businessId: str = "stridehub-shoes"
+    customer_id: Optional[str] = None
     contact_number: str
     name: Optional[str] = None
-    stage: str = "greet"
+    stage: str = "enquired"  # enquired, engaged, quoted, nurture, human_handoff, converted, lost
+    internal_stage: str = "greet"  # greet, qualify, collect_budget, collect_timeline, score, route
     qualification_score: float = 0.0
+    score_breakdown: Dict[str, float] = Field(default_factory=lambda: {"need": 0.0, "budget": 0.0, "timeline": 0.0, "engagement": 0.0})
     budget_signal: Optional[str] = None
     timeline_signal: Optional[str] = None
     need_summary: Optional[str] = None
+    interested_products: List[str] = Field(default_factory=list)
+    interested_product_names: List[str] = Field(default_factory=list)
     route_destination: Optional[str] = None
+    assigned_user: str = "AI Sales Agent"
+    source: str = "terminal_chat"  # terminal_chat, whatsapp, website, manual
+    tags: List[str] = Field(default_factory=list)
+    notes_count: int = 0
     last_interaction: Optional[str] = None
+    last_activity: Optional[str] = None
     follow_up_state: Optional[str] = "pending"
     metadata: Dict[str, Any] = Field(default_factory=dict)
+    created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
 
@@ -299,7 +421,7 @@ class ConversationMessageDocument(BaseModel):
     message_id: str
     businessId: str = "stridehub-shoes"
     conversation_id: str
-    role: str
+    role: str  # user, assistant, system
     content: str
     timestamp: str
     whatsapp_message_id: Optional[str] = None

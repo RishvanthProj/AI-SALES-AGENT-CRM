@@ -114,7 +114,13 @@ def collect_budget_node(state: SalesAgentState) -> Dict[str, Any]:
     Extracts structured budget signal from incoming message or previous state.
     Graph controls state -> sets current_stage to 'collect_budget'.
     """
-    ext_data = state.get("extracted_sales") or {}
+    ext_data = state.get("extracted_sales")
+    if not ext_data and state.get("incoming_message"):
+        ai = get_ai_provider()
+        sales_info = ai.extract_sales_signals(state.get("incoming_message", ""), state.get("history", []))
+        ext_data = sales_info.model_dump()
+
+    ext_data = ext_data or {}
     budget_val = ext_data.get("budget")
     b_range = ext_data.get("budget_range") or (f"Rs. {int(budget_val)}" if budget_val else None)
     current_budget = state.get("budget_signal") or b_range
@@ -131,7 +137,13 @@ def collect_timeline_node(state: SalesAgentState) -> Dict[str, Any]:
     Extracts structured timeline signal from incoming message.
     Graph controls state -> sets current_stage to 'collect_timeline'.
     """
-    ext_data = state.get("extracted_sales") or {}
+    ext_data = state.get("extracted_sales")
+    if not ext_data and state.get("incoming_message"):
+        ai = get_ai_provider()
+        sales_info = ai.extract_sales_signals(state.get("incoming_message", ""), state.get("history", []))
+        ext_data = sales_info.model_dump()
+
+    ext_data = ext_data or {}
     timeline_val = ext_data.get("timeline")
     current_timeline = state.get("timeline_signal") or timeline_val
 

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOLEVAULT — Premium Footwear Brand & Admin OS</title>
-  <meta name="description" content="SOLEVAULT - Premium footwear e-commerce brand. Discover running, sneakers, trekking, formals, and limited-edition shoes with AI-powered sales assistant.">
+  <title>Starboyz Footwear — AI Sales OS & SaaS CRM Platform</title>
+  <meta name="description" content="Complete interconnected AI Sales + CRM + Inventory + Order Management platform for Starboyz Footwear, grounded in Cloud Firestore and Google Gemini.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -13,564 +13,855 @@
 <body class="dark-theme">
   <div id="app" class="app-layout">
 
-    <!-- Top Navigation Bar -->
+    <!-- Top Master Navbar -->
     <header class="main-navbar">
       <div class="navbar-left">
         <div class="brand-badge-logo" id="logo-home-btn">
           <span class="brand-icon">⚡</span>
           <div class="brand-info">
-            <span class="brand-title">SOLEVAULT</span>
-            <span class="brand-tagline">MOVE BETTER. LIVE BETTER.</span>
+            <span class="brand-title">STARBOYZ</span>
+            <span class="brand-tagline">AI SALES OS &bull; CRM COMMAND CENTER</span>
           </div>
         </div>
       </div>
 
-      <!-- Center Nav Links for Storefront -->
-      <nav class="navbar-center" id="store-nav-links">
+      <!-- Center Nav for Storefront -->
+      <nav class="navbar-center" id="store-nav-links" style="display: none;">
         <button class="nav-link active" data-target="home">Home</button>
         <button class="nav-link" data-target="shop">Shop Footwear</button>
-        <button class="nav-link" data-target="categories">20 Categories</button>
+        <button class="nav-link" data-target="categories">Catalog</button>
         <button class="nav-link" data-target="offers">Offers & Deals</button>
         <button class="nav-link" data-target="track">Track Order</button>
       </nav>
 
-      <!-- Right Mode Switcher & Utilities -->
+      <!-- Right Header Controls -->
       <div class="navbar-right">
-        <!-- Search trigger -->
-        <button class="icon-btn" id="search-modal-btn" title="Search catalog">
+        <!-- Global Search Trigger -->
+        <button class="icon-btn search-trigger-btn" id="search-modal-btn" title="Global CRM Search (Cmd+K)">
           <span>🔍</span>
+          <span class="search-key-hint">Search CRM... ⌘K</span>
         </button>
 
-        <!-- Compare counter -->
-        <button class="icon-btn compare-pill" id="open-compare-btn" title="Compare shoes">
-          <span>⚖️</span>
-          <span class="badge" id="compare-counter">0</span>
-        </button>
+        <!-- Live Sync Status Indicator -->
+        <div class="live-sync-indicator" title="Authoritative Real-Time Data Layer Connected">
+          <span class="sync-dot pulse"></span>
+          <span class="sync-text">LIVE SYNC</span>
+        </div>
 
-        <!-- Cart trigger -->
-        <button class="icon-btn cart-btn" id="open-cart-btn" title="View Cart">
-          <span>🛒</span>
-          <span class="badge" id="cart-counter">0</span>
-        </button>
-
-        <!-- Mode Toggle Segment -->
+        <!-- Mode Switcher -->
         <div class="mode-switcher">
-          <button class="mode-btn active" id="mode-store-btn" title="Customer Storefront">
-            <span>👟 Store</span>
+          <button class="mode-btn active" id="mode-crm-btn" title="Business Owner / Admin CRM Command Center">
+            <span>📊 CRM Command</span>
           </button>
-          <button class="mode-btn" id="mode-admin-btn" title="Executive Admin Dashboard">
-            <span>📊 Admin</span>
+          <button class="mode-btn" id="mode-store-btn" title="Customer E-Commerce Storefront">
+            <span>👟 Storefront</span>
           </button>
-          <button class="mode-btn" id="mode-chat-btn" title="WhatsApp AI Sales Agent">
-            <span>💬 AI Chat</span>
+          <button class="mode-btn" id="mode-chat-btn" title="WhatsApp AI Sales Agent Simulator">
+            <span>💬 Live Chat</span>
           </button>
         </div>
 
-        <button class="icon-btn" id="theme-toggle-btn" title="Toggle Theme">
+        <button class="icon-btn" id="theme-toggle-btn" title="Toggle Light/Dark Theme">
           <span id="theme-icon">🌙</span>
         </button>
       </div>
     </header>
 
-    <!-- Marquee Highlights Bar -->
-    <div class="announcement-bar">
-      <div class="marquee-content">
-        <span>🚀 <strong>FREE EXPRESS SHIPPING</strong> ON ALL ORDERS ABOVE ₹1,500 ACROSS INDIA</span>
-        <span>•</span>
-        <span>🔥 USE CODE <strong>STRIDE10</strong> FOR 10% OFF ORDERS OVER ₹1,999</span>
-        <span>•</span>
-        <span>👟 7-DAY EASY HOME RETURNS & 100% SIZE REPLACEMENT GUARANTEE</span>
-        <span>•</span>
-        <span>💳 CASH ON DELIVERY (COD) & INSTANT UPI AVAILABLE</span>
-        <span>•</span>
-        <span>✨ 20 NEW SHOE CATEGORIES NOW LIVE IN SOLEVAULT 2026 COLLECTION</span>
-      </div>
-    </div>
+    <!-- ===================================================================== -->
+    <!-- SECTION 1: CRM COMMAND CENTER WITH FULL SAAS SIDEBAR                   -->
+    <!-- ===================================================================== -->
+    <main class="content-container active" id="crm-view">
+      <div class="crm-shell">
+        
+        <!-- Collapsible Professional CRM Sidebar -->
+        <aside class="crm-sidebar" id="crm-sidebar">
+          <div class="sidebar-header">
+            <div class="sidebar-brand">
+              <span class="brand-mini-badge">AI CRM</span>
+              <span class="sidebar-title">Sales Platform</span>
+            </div>
+            <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Toggle Sidebar">☰</button>
+          </div>
 
-    <!-- ===================================================================== -->
-    <!-- SECTION 1: SOLEVAULT STOREFRONT                                        -->
-    <!-- ===================================================================== -->
-    <main class="content-container active" id="storefront-view">
-      
-      <!-- HERO BANNER -->
-      <section class="hero-section">
-        <div class="hero-backdrop"></div>
-        <div class="hero-content">
-          <div class="hero-pill">⚡ SOLEVAULT 2026 PERFORMANCE & LIFESTYLE</div>
-          <h1 class="hero-headline">Move Better.<br><span class="gradient-text">Live Better.</span></h1>
-          <p class="hero-subtext">Engineered for athletes, trendsetters, and daily walkers. Experience dual-density air cushions, curved carbon fiber propulsion plates, and bespoke Italian leather craftsmanship.</p>
-          <div class="hero-actions">
-            <button class="btn btn-primary btn-glow" id="hero-shop-all-btn">
-              <span>Explore Collection</span> ➔
+          <nav class="sidebar-nav">
+            <div class="nav-group-title">COMMAND & PIPELINE</div>
+            <button class="crm-nav-item active" data-view="dashboard">
+              <span class="nav-icon">📊</span>
+              <span class="nav-label">Dashboard</span>
             </button>
-            <button class="btn btn-glass" id="hero-shop-running-btn">Running Pro</button>
-            <button class="btn btn-glass" id="hero-shop-sneakers-btn">Sneakers</button>
-            <button class="btn btn-glass" id="hero-shop-limited-btn">Limited Edition</button>
-          </div>
-          <div class="hero-stats">
-            <div class="stat-item">
-              <span class="stat-num">20+</span>
-              <span class="stat-lbl">Footwear Categories</span>
-            </div>
-            <div class="stat-divider"></div>
-            <div class="stat-item">
-              <span class="stat-num">300+</span>
-              <span class="stat-lbl">Variants & Sizes</span>
-            </div>
-            <div class="stat-divider"></div>
-            <div class="stat-item">
-              <span class="stat-num">4.8★</span>
-              <span class="stat-lbl">Verified Rating</span>
-            </div>
-            <div class="stat-divider"></div>
-            <div class="stat-item">
-              <span class="stat-num">3-Day</span>
-              <span class="stat-lbl">Express Delivery</span>
-            </div>
-          </div>
-        </div>
-        <div class="hero-shoe-showcase">
-          <div class="glow-orb"></div>
-          <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1000" alt="AeroSprint X1 Hero Shoe" class="floating-hero-shoe" id="hero-shoe-img">
-          <div class="floating-badge badge-top-right">
-            <span class="badge-tag">AeroSprint X1</span>
-            <span class="badge-price">₹4,999</span>
-          </div>
-          <div class="floating-badge badge-bottom-left">
-            <span class="badge-icon">💨</span>
-            <span class="badge-text">Carbon Air Cushion</span>
-          </div>
-        </div>
-      </section>
+            <button class="crm-nav-item" data-view="inbox">
+              <span class="nav-icon">💬</span>
+              <span class="nav-label">Inbox & Live Chat</span>
+              <span class="nav-pill" id="inbox-badge-count">0</span>
+            </button>
+            <button class="crm-nav-item" data-view="leads">
+              <span class="nav-icon">👥</span>
+              <span class="nav-label">Leads Management</span>
+              <span class="nav-pill" id="leads-badge-count">0</span>
+            </button>
+            <button class="crm-nav-item" data-view="customers">
+              <span class="nav-icon">👤</span>
+              <span class="nav-label">Customer 360</span>
+            </button>
+            <button class="crm-nav-item" data-view="pipeline">
+              <span class="nav-icon">🔄</span>
+              <span class="nav-label">Funnel Pipeline</span>
+            </button>
 
-      <!-- 20 CATEGORIES CAROUSEL -->
-      <section class="categories-bar-section" id="categories-section">
-        <div class="section-header">
-          <div>
-            <h2 class="section-title">Explore 20 Shoe Categories</h2>
-            <p class="section-subtitle">Find your exact match across running, outdoor, formal, lifestyle, and limited editions.</p>
-          </div>
-          <div class="carousel-nav-arrows">
-            <button class="arrow-btn" id="cat-prev-btn">‹</button>
-            <button class="arrow-btn" id="cat-next-btn">›</button>
-          </div>
-        </div>
-        <div class="categories-carousel" id="categories-track">
-          <!-- Populated by JavaScript with all 20 categories -->
-        </div>
-      </section>
+            <div class="nav-group-title">COMMERCE & INVENTORY</div>
+            <button class="crm-nav-item" data-view="products">
+              <span class="nav-icon">👟</span>
+              <span class="nav-label">Product Catalog</span>
+            </button>
+            <button class="crm-nav-item" data-view="inventory">
+              <span class="nav-icon">📦</span>
+              <span class="nav-label">Inventory & Stock</span>
+              <span class="nav-pill warning-pill" id="low-stock-badge-count" style="display: none;">0</span>
+            </button>
+            <button class="crm-nav-item" data-view="movements">
+              <span class="nav-icon">📈</span>
+              <span class="nav-label">Stock Movements</span>
+            </button>
+            <button class="crm-nav-item" data-view="orders">
+              <span class="nav-icon">🛍️</span>
+              <span class="nav-label">Orders & Delivery</span>
+              <span class="nav-pill" id="orders-badge-count">0</span>
+            </button>
+            <button class="crm-nav-item" data-view="quotes">
+              <span class="nav-icon">📑</span>
+              <span class="nav-label">Quotes & Invoices</span>
+            </button>
 
-      <!-- SHOP & CATALOG SECTION WITH 15+ FILTERS -->
-      <section class="shop-catalog-section" id="shop-section">
-        <div class="shop-layout">
+            <div class="nav-group-title">OPERATIONS & ANALYTICS</div>
+            <button class="crm-nav-item" data-view="tasks">
+              <span class="nav-icon">✅</span>
+              <span class="nav-label">Tasks & Follow-ups</span>
+              <span class="nav-pill" id="tasks-badge-count">0</span>
+            </button>
+            <button class="crm-nav-item" data-view="tags">
+              <span class="nav-icon">🏷️</span>
+              <span class="nav-label">Tags & Segments</span>
+            </button>
+            <button class="crm-nav-item" data-view="activity">
+              <span class="nav-icon">🕒</span>
+              <span class="nav-label">Activity Timeline</span>
+            </button>
+            <button class="crm-nav-item" data-view="analytics">
+              <span class="nav-icon">📊</span>
+              <span class="nav-label">Deep Analytics</span>
+            </button>
+
+            <div class="nav-group-title">SYSTEM</div>
+            <button class="crm-nav-item" data-view="settings">
+              <span class="nav-icon">⚙️</span>
+              <span class="nav-label">Store Settings</span>
+            </button>
+            <button class="crm-nav-item" data-view="health">
+              <span class="nav-icon">🩺</span>
+              <span class="nav-label">System Health</span>
+            </button>
+          </nav>
+
+          <div class="sidebar-footer">
+            <div class="tenant-badge">
+              <span class="tenant-dot"></span>
+              <div class="tenant-details">
+                <span class="tenant-name">Starboyz Footwear</span>
+                <span class="tenant-id">stridehub-shoes</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Main CRM Dynamic Content Area -->
+        <div class="crm-main-viewport">
           
-          <!-- LEFT FILTER SIDEBAR (15+ Facets) -->
-          <aside class="filter-sidebar" id="filter-sidebar">
-            <div class="filter-header">
-              <span class="filter-title">Filters & Specifications</span>
-              <button class="btn-text" id="reset-filters-btn">Clear All</button>
+          <!-- Top Action Bar for View -->
+          <div class="crm-top-bar">
+            <div class="view-header-left">
+              <h1 class="view-title" id="crm-view-title">Dashboard Overview</h1>
+              <p class="view-subtitle" id="crm-view-subtitle">Real-time sales performance, qualification metrics & inventory overview.</p>
             </div>
-
-            <!-- Active Filter Chips -->
-            <div class="active-filter-chips" id="active-filter-chips"></div>
-
-            <!-- 1. Category Filter -->
-            <div class="filter-group">
-              <label class="filter-group-title">Category</label>
-              <div class="filter-options-scroll" id="category-filter-options">
-                <!-- Dynamically populated -->
-              </div>
+            <div class="view-header-actions" id="crm-top-actions">
+              <!-- Rendered dynamically per active view -->
             </div>
+          </div>
 
-            <!-- 2. Gender Filter -->
-            <div class="filter-group">
-              <label class="filter-group-title">Gender / Demographic</label>
-              <div class="filter-chips-grid">
-                <button class="filter-chip-btn active" data-facet="gender" data-val="all">All</button>
-                <button class="filter-chip-btn" data-facet="gender" data-val="Men">Men</button>
-                <button class="filter-chip-btn" data-facet="gender" data-val="Women">Women</button>
-                <button class="filter-chip-btn" data-facet="gender" data-val="Kids">Kids</button>
-                <button class="filter-chip-btn" data-facet="gender" data-val="Unisex">Unisex</button>
+          <!-- Human Handoff Alert Banner -->
+          <div class="handoff-alert-banner" id="crm-handoff-banner" style="display: none;">
+            <div class="handoff-alert-content">
+              <span class="alert-icon">⚠️</span>
+              <div>
+                <strong>HUMAN HANDOFF REQUIRED:</strong>
+                <span id="handoff-banner-text">Leads requiring staff consultation.</span>
               </div>
             </div>
+            <button class="btn btn-sm btn-light" onclick="crmApp.switchView('leads', {stage: 'human_handoff'})">Review Leads ➔</button>
+          </div>
 
-            <!-- 3. Size Filter (UK 3-12) -->
-            <div class="filter-group">
-              <div class="filter-title-row">
-                <label class="filter-group-title">Size (UK System)</label>
-                <span class="size-guide-link" id="open-size-guide-btn">Size Guide</span>
-              </div>
-              <div class="size-chips-grid" id="size-chips-filter">
-                <button class="size-btn" data-size="3">3</button>
-                <button class="size-btn" data-size="4">4</button>
-                <button class="size-btn" data-size="5">5</button>
-                <button class="size-btn" data-size="6">6</button>
-                <button class="size-btn" data-size="7">7</button>
-                <button class="size-btn active" data-size="8">8</button>
-                <button class="size-btn" data-size="9">9</button>
-                <button class="size-btn" data-size="10">10</button>
-                <button class="size-btn" data-size="11">11</button>
-                <button class="size-btn" data-size="12">12</button>
-              </div>
-            </div>
+          <!-- Dynamic Panes Container -->
+          <div class="crm-panes-container">
 
-            <!-- 4. Color Swatches -->
-            <div class="filter-group">
-              <label class="filter-group-title">Color Palette</label>
-              <div class="color-swatches-grid" id="color-swatches-filter">
-                <button class="color-dot-btn" style="background-color: #1a1a1a;" data-color="Black" title="Black"></button>
-                <button class="color-dot-btn" style="background-color: #ffffff; border: 1px solid #ccc;" data-color="White" title="White"></button>
-                <button class="color-dot-btn" style="background-color: #dc2626;" data-color="Red" title="Red"></button>
-                <button class="color-dot-btn" style="background-color: #1e3a8a;" data-color="Blue" title="Blue"></button>
-                <button class="color-dot-btn" style="background-color: #15803d;" data-color="Green" title="Green"></button>
-                <button class="color-dot-btn" style="background-color: #64748b;" data-color="Grey" title="Grey"></button>
-                <button class="color-dot-btn" style="background-color: #d97706;" data-color="Tan" title="Tan/Brown"></button>
-                <button class="color-dot-btn" style="background-color: #ec4899;" data-color="Pink" title="Pink"></button>
+            <!-- 1. DASHBOARD PANE -->
+            <div class="crm-pane active" id="pane-dashboard">
+              <!-- Top 8 KPI Cards -->
+              <div class="kpi-grid">
+                <div class="kpi-card" data-metric="leads">
+                  <span class="kpi-icon">👥</span>
+                  <div class="kpi-body">
+                    <span class="kpi-label">Total Leads</span>
+                    <span class="kpi-value" id="kpi-total-leads">0</span>
+                    <span class="kpi-trend positive" id="kpi-new-leads-trend">0 New today</span>
+                  </div>
+                </div>
+                <div class="kpi-card" data-metric="qualified">
+                  <span class="kpi-icon">🎯</span>
+                  <div class="kpi-body">
+                    <span class="kpi-label">Qualified Leads</span>
+                    <span class="kpi-value" id="kpi-qualified-leads">0</span>
+                    <span class="kpi-trend positive">High Purchase Intent</span>
+                  </div>
+                </div>
+                <div class="kpi-card" data-metric="conversations">
+                  <span class="kpi-icon">💬</span>
+                  <div class="kpi-body">
+                    <span class="kpi-label">Active Conversations</span>
+                    <span class="kpi-value" id="kpi-active-conversations">0</span>
+                    <span class="kpi-trend neutral">Terminal & WhatsApp</span>
+                  </div>
+                </div>
+                <div class="kpi-card" data-metric="orders">
+                  <span class="kpi-icon">🛍️</span>
+                  <div class="kpi-body">
+                    <span class="kpi-label">Total Orders</span>
+                    <span class="kpi-value" id="kpi-total-orders">0</span>
+                    <span class="kpi-trend positive" id="kpi-pending-orders-trend">0 In fulfillment</span>
+                  </div>
+                </div>
+                <div class="kpi-card highlight-card" data-metric="revenue">
+                  <span class="kpi-icon">💰</span>
+                  <div class="kpi-body">
+                    <span class="kpi-label">Total Revenue</span>
+                    <span class="kpi-value" id="kpi-total-revenue">₹0</span>
+                    <span class="kpi-trend positive">Verified Invoiced</span>
+                  </div>
+                </div>
+                <div class="kpi-card" data-metric="conversion">
+                  <span class="kpi-icon">⚡</span>
+                  <div class="kpi-body">
+                    <span class="kpi-label">Conversion Rate</span>
+                    <span class="kpi-value" id="kpi-conversion-rate">0%</span>
+                    <span class="kpi-trend positive">Lead to Purchase</span>
+                  </div>
+                </div>
+                <div class="kpi-card" data-metric="aov">
+                  <span class="kpi-icon">💎</span>
+                  <div class="kpi-body">
+                    <span class="kpi-label">Average Order Value</span>
+                    <span class="kpi-value" id="kpi-aov">₹0</span>
+                    <span class="kpi-trend neutral">Per Transaction</span>
+                  </div>
+                </div>
+                <div class="kpi-card" data-metric="handoff">
+                  <span class="kpi-icon">⚠️</span>
+                  <div class="kpi-body">
+                    <span class="kpi-label">Human Handoff</span>
+                    <span class="kpi-value warning-text" id="kpi-human-handoff">0</span>
+                    <span class="kpi-trend warning">Attention Required</span>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <!-- 5. Price Range Slider -->
-            <div class="filter-group">
-              <div class="filter-title-row">
-                <label class="filter-group-title">Price Range</label>
-                <span class="price-val-label" id="price-range-label">Up to ₹10,000</span>
+              <!-- Secondary Indicators Bar -->
+              <div class="secondary-indicators-bar">
+                <div class="sec-chip"><span class="sec-label">Nurture Leads:</span> <strong id="sec-nurture">0</strong></div>
+                <div class="sec-chip"><span class="sec-label">Pending Delivery:</span> <strong id="sec-pending-orders">0</strong></div>
+                <div class="sec-chip warning-chip"><span class="sec-label">Low Stock SKUs:</span> <strong id="sec-low-stock">0</strong></div>
+                <div class="sec-chip danger-chip"><span class="sec-label">Out of Stock:</span> <strong id="sec-out-stock">0</strong></div>
+                <div class="sec-chip"><span class="sec-label">Follow-ups Due:</span> <strong id="sec-followups">0</strong></div>
               </div>
-              <input type="range" class="range-slider" id="price-range-slider" min="500" max="10000" step="500" value="10000">
-            </div>
 
-            <!-- 6. Features & Technology Toggles -->
-            <div class="filter-group">
-              <label class="filter-group-title">Features & Armor</label>
-              <div class="checkbox-list">
-                <label class="custom-checkbox">
-                  <input type="checkbox" id="feat-waterproof">
-                  <span class="checkmark"></span>
-                  <span>Waterproof / Resistant</span>
-                </label>
-                <label class="custom-checkbox">
-                  <input type="checkbox" id="feat-breathable" checked>
-                  <span class="checkmark"></span>
-                  <span>Breathable Mesh</span>
-                </label>
-                <label class="custom-checkbox">
-                  <input type="checkbox" id="feat-instock">
-                  <span class="checkmark"></span>
-                  <span>In Stock Only</span>
-                </label>
-              </div>
-            </div>
-
-            <!-- 7. Collections & Badges -->
-            <div class="filter-group">
-              <label class="filter-group-title">Special Editions</label>
-              <div class="checkbox-list">
-                <label class="custom-checkbox">
-                  <input type="checkbox" id="badge-bestseller">
-                  <span class="checkmark"></span>
-                  <span>Best Sellers</span>
-                </label>
-                <label class="custom-checkbox">
-                  <input type="checkbox" id="badge-new">
-                  <span class="checkmark"></span>
-                  <span>New Arrivals</span>
-                </label>
-                <label class="custom-checkbox">
-                  <input type="checkbox" id="badge-limited">
-                  <span class="checkmark"></span>
-                  <span>Limited Edition</span>
-                </label>
-              </div>
-            </div>
-          </aside>
-
-          <!-- RIGHT PRODUCT CATALOG GRID -->
-          <div class="catalog-main">
-            <!-- Catalog Top Toolbar -->
-            <div class="catalog-toolbar">
-              <div class="toolbar-left">
-                <span class="results-count" id="catalog-results-count">Showing 20 Shoes</span>
-              </div>
-              <div class="toolbar-right">
-                <div class="sort-selector">
-                  <label for="sort-dropdown">Sort by:</label>
-                  <select id="sort-dropdown" class="select-input">
-                    <option value="recommended">Featured & Recommended</option>
-                    <option value="popular">Most Popular</option>
-                    <option value="rating">Top Customer Rated</option>
-                    <option value="price_asc">Price: Low to High</option>
-                    <option value="price_desc">Price: High to Low</option>
-                    <option value="newest">Newest Releases</option>
-                  </select>
+              <!-- Charts Grid -->
+              <div class="charts-grid">
+                <div class="chart-card">
+                  <div class="chart-header">
+                    <span class="chart-title">Revenue & Order Trend (₹)</span>
+                    <span class="chart-tag">Live Grounded</span>
+                  </div>
+                  <div class="svg-chart-container" id="dash-revenue-chart"></div>
+                </div>
+                <div class="chart-card">
+                  <div class="chart-header">
+                    <span class="chart-title">Lead Acquisition Trend</span>
+                    <span class="chart-tag">Terminal & Web</span>
+                  </div>
+                  <div class="svg-chart-container" id="dash-leads-chart"></div>
+                </div>
+                <div class="chart-card">
+                  <div class="chart-header">
+                    <span class="chart-title">Funnel Conversion Pipeline</span>
+                  </div>
+                  <div class="funnel-bars-container" id="dash-funnel-chart"></div>
+                </div>
+                <div class="chart-card">
+                  <div class="chart-header">
+                    <span class="chart-title">Top Selling Footwear</span>
+                  </div>
+                  <div class="top-products-list" id="dash-top-products-list"></div>
                 </div>
               </div>
             </div>
 
-            <!-- Product Grid -->
-            <div class="products-grid" id="products-grid">
-              <!-- Dynamically populated shoe cards -->
+            <!-- 2. INBOX / CONVERSATIONS PANE -->
+            <div class="crm-pane" id="pane-inbox">
+              <div class="inbox-layout">
+                <!-- Left: Conversation List -->
+                <div class="inbox-list-col">
+                  <div class="inbox-search-box">
+                    <input type="text" id="inbox-search-input" class="form-input" placeholder="Search conversations...">
+                  </div>
+                  <div class="conversations-list" id="inbox-conversations-list">
+                    <!-- Populated by JS -->
+                  </div>
+                </div>
+
+                <!-- Center: Live Transcript Stream -->
+                <div class="inbox-transcript-col">
+                  <div class="transcript-header" id="transcript-header">
+                    <div class="transcript-user-info">
+                      <div class="user-avatar" id="transcript-avatar">👤</div>
+                      <div>
+                        <h3 id="transcript-name">Select a Conversation</h3>
+                        <span class="text-muted" id="transcript-phone">--</span>
+                      </div>
+                    </div>
+                    <div class="transcript-badges" id="transcript-badges"></div>
+                  </div>
+                  <div class="transcript-messages" id="transcript-messages-box">
+                    <div class="empty-state">Select a customer from the left to view full real-time conversational history.</div>
+                  </div>
+                </div>
+
+                <!-- Right: Quick Customer Summary -->
+                <div class="inbox-customer-col" id="inbox-customer-sidebar">
+                  <div class="sidebar-section-card">
+                    <h4>Customer Profile</h4>
+                    <div id="inbox-cust-details" class="details-list">
+                      <div class="text-muted">No conversation selected.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <!-- Pagination -->
-            <div class="pagination-bar" id="pagination-bar"></div>
-          </div>
+            <!-- 3. LEADS MANAGEMENT PANE -->
+            <div class="crm-pane" id="pane-leads">
+              <!-- Filter & Search Bar -->
+              <div class="crm-toolbar">
+                <div class="toolbar-left">
+                  <input type="text" id="leads-search-input" class="form-input search-input" placeholder="Search leads by name, phone, shoes...">
+                  <select id="leads-stage-filter" class="select-input">
+                    <option value="all">All Stages</option>
+                    <option value="enquired">Enquired</option>
+                    <option value="engaged">Engaged</option>
+                    <option value="quoted">Quoted</option>
+                    <option value="nurture">Nurture</option>
+                    <option value="human_handoff">Human Handoff</option>
+                    <option value="converted">Converted</option>
+                  </select>
+                  <select id="leads-score-filter" class="select-input">
+                    <option value="0">All Scores (0-100)</option>
+                    <option value="70">Score &ge; 70 (Hot)</option>
+                    <option value="40">Score 40-69 (Warm)</option>
+                    <option value="1">Score &lt; 40 (Cold)</option>
+                  </select>
+                </div>
+                <div class="toolbar-right">
+                  <button class="btn btn-secondary" id="export-leads-csv-btn"><span>📥</span> Export CSV</button>
+                  <button class="btn btn-primary" id="open-add-lead-btn"><span>➕</span> Add Lead</button>
+                </div>
+              </div>
 
+              <!-- Bulk Action Bar -->
+              <div class="bulk-action-bar" id="leads-bulk-bar" style="display: none;">
+                <span id="leads-selected-count">0 leads selected</span>
+                <div class="bulk-actions-group">
+                  <button class="btn btn-sm btn-secondary" onclick="crmApp.bulkMoveStage('engaged')">Mark Engaged</button>
+                  <button class="btn btn-sm btn-secondary" onclick="crmApp.bulkMoveStage('quoted')">Mark Quoted</button>
+                  <button class="btn btn-sm btn-secondary" onclick="crmApp.bulkMoveStage('human_handoff')">Human Handoff</button>
+                  <button class="btn btn-sm btn-secondary" onclick="crmApp.bulkMoveStage('converted')">Mark Converted</button>
+                </div>
+              </div>
+
+              <!-- Leads Data Table -->
+              <div class="table-responsive">
+                <table class="data-table" id="leads-table">
+                  <thead>
+                    <tr>
+                      <th width="40"><input type="checkbox" id="leads-select-all"></th>
+                      <th>Customer</th>
+                      <th>Phone</th>
+                      <th>Funnel Stage</th>
+                      <th>Score</th>
+                      <th>Budget Signal</th>
+                      <th>Timeline</th>
+                      <th>Interested Shoes</th>
+                      <th>Source</th>
+                      <th>Last Activity</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="leads-tbody">
+                    <!-- Rendered by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 4. CUSTOMER 360 PANE -->
+            <div class="crm-pane" id="pane-customers">
+              <div class="crm-toolbar">
+                <div class="toolbar-left">
+                  <input type="text" id="customers-search-input" class="form-input search-input" placeholder="Search customers by name, phone, city...">
+                  <select id="customers-type-filter" class="select-input">
+                    <option value="all">All Types</option>
+                    <option value="high_value">High Value (&ge;₹5k)</option>
+                    <option value="returning">Returning</option>
+                    <option value="new">New Customer</option>
+                  </select>
+                </div>
+                <div class="toolbar-right">
+                  <button class="btn btn-secondary" id="export-customers-csv-btn"><span>📥</span> Export CSV</button>
+                  <button class="btn btn-primary" id="open-add-customer-btn"><span>➕</span> Add Customer</button>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="data-table" id="customers-table">
+                  <thead>
+                    <tr>
+                      <th>Customer Name</th>
+                      <th>Contact Number</th>
+                      <th>Email</th>
+                      <th>City & State</th>
+                      <th>Total Orders</th>
+                      <th>Total Spent</th>
+                      <th>AOV</th>
+                      <th>Customer Segment</th>
+                      <th>Tags</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="customers-tbody">
+                    <!-- Rendered by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 5. FUNNEL PIPELINE / KANBAN PANE -->
+            <div class="crm-pane" id="pane-pipeline">
+              <div class="kanban-board" id="kanban-board">
+                <!-- Columns populated dynamically: Enquired, Engaged, Quoted, Nurture, Human Handoff, Converted -->
+              </div>
+            </div>
+
+            <!-- 6. PRODUCT CATALOG PANE -->
+            <div class="crm-pane" id="pane-products">
+              <div class="crm-toolbar">
+                <div class="toolbar-left">
+                  <input type="text" id="products-search-input" class="form-input search-input" placeholder="Search shoe name, SKU, category...">
+                  <select id="products-category-filter" class="select-input">
+                    <option value="all">All Categories</option>
+                    <option value="Running">Running</option>
+                    <option value="Casual">Casual</option>
+                    <option value="Formal">Formal</option>
+                    <option value="Walking">Walking</option>
+                    <option value="Trail">Trail</option>
+                  </select>
+                  <select id="products-stock-filter" class="select-input">
+                    <option value="all">All Stock Status</option>
+                    <option value="in_stock">In Stock</option>
+                    <option value="low_stock">Low Stock Alerts</option>
+                    <option value="out_of_stock">Out of Stock</option>
+                  </select>
+                </div>
+                <div class="toolbar-right">
+                  <button class="btn btn-primary" id="open-add-product-btn"><span>➕</span> Add New Shoe</button>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="data-table" id="products-table">
+                  <thead>
+                    <tr>
+                      <th>Shoe Item & SKU</th>
+                      <th>Category</th>
+                      <th>Price / MRP</th>
+                      <th>Available Stock</th>
+                      <th>Stock Status</th>
+                      <th>Sizes</th>
+                      <th>Rating</th>
+                      <th>Quick Stock Action</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="products-tbody">
+                    <!-- Rendered by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 7. INVENTORY MANAGEMENT PANE -->
+            <div class="crm-pane" id="pane-inventory">
+              <div class="inventory-overview-grid">
+                <div class="inv-kpi-card">
+                  <span class="inv-kpi-title">Total Active SKUs</span>
+                  <span class="inv-kpi-val" id="inv-total-skus">0</span>
+                </div>
+                <div class="inv-kpi-card in-stock-kpi">
+                  <span class="inv-kpi-title">In Stock SKUs</span>
+                  <span class="inv-kpi-val" id="inv-in-stock">0</span>
+                </div>
+                <div class="inv-kpi-card low-stock-kpi">
+                  <span class="inv-kpi-title">Low Stock Alerts (&le;5)</span>
+                  <span class="inv-kpi-val" id="inv-low-stock">0</span>
+                </div>
+                <div class="inv-kpi-card out-stock-kpi">
+                  <span class="inv-kpi-title">Out of Stock (0)</span>
+                  <span class="inv-kpi-val" id="inv-out-stock">0</span>
+                </div>
+              </div>
+
+              <div class="crm-toolbar" style="margin-top: 24px;">
+                <div class="toolbar-left">
+                  <h3>Shoe Inventory Breakdown</h3>
+                </div>
+                <div class="toolbar-right">
+                  <button class="btn btn-secondary" onclick="crmApp.switchView('movements')"><span>📈</span> View Movements Audit Log</button>
+                  <button class="btn btn-primary" id="open-adjust-stock-modal-btn"><span>⚡</span> Adjust Inventory Stock</button>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="data-table" id="inventory-table">
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th>SKU</th>
+                      <th>Warehouse</th>
+                      <th>Current Quantity</th>
+                      <th>Low Stock Threshold</th>
+                      <th>Status Badge</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="inventory-tbody">
+                    <!-- Rendered by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 8. STOCK MOVEMENTS LOG PANE -->
+            <div class="crm-pane" id="pane-movements">
+              <div class="crm-toolbar">
+                <div class="toolbar-left">
+                  <input type="text" id="movements-search-input" class="form-input search-input" placeholder="Search by shoe name, reason, reference ID...">
+                </div>
+                <div class="toolbar-right">
+                  <button class="btn btn-secondary" id="export-movements-csv-btn"><span>📥</span> Export Audit Log</button>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="data-table" id="movements-table">
+                  <thead>
+                    <tr>
+                      <th>Movement ID</th>
+                      <th>Timestamp</th>
+                      <th>Product Name</th>
+                      <th>Quantity Delta</th>
+                      <th>Previous Stock</th>
+                      <th>Resulting Stock</th>
+                      <th>Reason</th>
+                      <th>Performed By</th>
+                      <th>Reference ID</th>
+                    </tr>
+                  </thead>
+                  <tbody id="movements-tbody">
+                    <!-- Rendered by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 9. ORDERS & FULFILLMENT PANE -->
+            <div class="crm-pane" id="pane-orders">
+              <div class="crm-toolbar">
+                <div class="toolbar-left">
+                  <input type="text" id="orders-search-input" class="form-input search-input" placeholder="Search Order #, Customer, AWB...">
+                  <select id="orders-status-filter" class="select-input">
+                    <option value="all">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="packed">Packed</option>
+                    <option value="dispatched">Dispatched</option>
+                    <option value="out_for_delivery">Out for Delivery</option>
+                    <option value="delivered">Delivered</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+                <div class="toolbar-right">
+                  <button class="btn btn-secondary" id="export-orders-csv-btn"><span>📥</span> Export Orders</button>
+                  <button class="btn btn-primary" id="open-create-order-btn"><span>➕</span> Create Manual Order</button>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="data-table" id="orders-table">
+                  <thead>
+                    <tr>
+                      <th>Order ID</th>
+                      <th>Customer</th>
+                      <th>Item Ordered</th>
+                      <th>Amount (₹)</th>
+                      <th>Payment Method</th>
+                      <th>Payment Status</th>
+                      <th>Fulfillment Status</th>
+                      <th>Courier & Tracking</th>
+                      <th>Order Date</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="orders-tbody">
+                    <!-- Rendered by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 10. QUOTES & INVOICES PANE -->
+            <div class="crm-pane" id="pane-quotes">
+              <div class="crm-toolbar">
+                <div class="toolbar-left">
+                  <input type="text" id="quotes-search-input" class="form-input search-input" placeholder="Search quote #, customer...">
+                </div>
+                <div class="toolbar-right">
+                  <button class="btn btn-primary" id="open-create-quote-btn"><span>➕</span> Generate Quote</button>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="data-table" id="quotes-table">
+                  <thead>
+                    <tr>
+                      <th>Quote #</th>
+                      <th>Customer</th>
+                      <th>Contact</th>
+                      <th>Total Amount</th>
+                      <th>Status</th>
+                      <th>Invoice ID</th>
+                      <th>Valid Until</th>
+                      <th>Created Date</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="quotes-tbody">
+                    <!-- Rendered by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 11. TASKS & FOLLOW-UPS PANE -->
+            <div class="crm-pane" id="pane-tasks">
+              <div class="crm-toolbar">
+                <div class="toolbar-left">
+                  <div class="tab-pill-group">
+                    <button class="tab-pill active" data-task-tab="all">All Tasks</button>
+                    <button class="tab-pill" data-task-tab="today">Due Today</button>
+                    <button class="tab-pill" data-task-tab="overdue">Overdue</button>
+                    <button class="tab-pill" data-task-tab="completed">Completed</button>
+                  </div>
+                </div>
+                <div class="toolbar-right">
+                  <button class="btn btn-primary" id="open-create-task-btn"><span>➕</span> Add Task</button>
+                </div>
+              </div>
+
+              <div class="tasks-grid" id="tasks-container">
+                <!-- Rendered by JS -->
+              </div>
+            </div>
+
+            <!-- 12. TAGS & SEGMENTS PANE -->
+            <div class="crm-pane" id="pane-tags">
+              <div class="crm-toolbar">
+                <div class="toolbar-left">
+                  <h3>Configurable CRM Tags & Badges</h3>
+                </div>
+                <div class="toolbar-right">
+                  <button class="btn btn-primary" id="open-create-tag-btn"><span>➕</span> Create New Tag</button>
+                </div>
+              </div>
+              <div class="tags-manager-grid" id="tags-manager-container">
+                <!-- Rendered by JS -->
+              </div>
+            </div>
+
+            <!-- 13. ACTIVITY STREAM PANE -->
+            <div class="crm-pane" id="pane-activity">
+              <div class="activity-timeline-wrapper">
+                <h3>System-Wide Activity & Audit Stream</h3>
+                <div class="activity-timeline-feed" id="activity-feed-container">
+                  <!-- Rendered by JS -->
+                </div>
+              </div>
+            </div>
+
+            <!-- 14. DEEP ANALYTICS PANE -->
+            <div class="crm-pane" id="pane-analytics">
+              <div class="analytics-dashboard">
+                <div class="charts-grid">
+                  <div class="chart-card">
+                    <div class="chart-header">
+                      <span class="chart-title">Sales Revenue by Category</span>
+                    </div>
+                    <div class="category-bars-container" id="analytics-category-bars"></div>
+                  </div>
+                  <div class="chart-card">
+                    <div class="chart-header">
+                      <span class="chart-title">Customer Segmentation Cohorts</span>
+                    </div>
+                    <div class="donut-chart-container" id="analytics-cohorts-chart"></div>
+                  </div>
+                  <div class="chart-card">
+                    <div class="chart-header">
+                      <span class="chart-title">Lead Acquisition Channels</span>
+                    </div>
+                    <div class="donut-chart-container" id="analytics-sources-chart"></div>
+                  </div>
+                  <div class="chart-card">
+                    <div class="chart-header">
+                      <span class="chart-title">Funnel Conversion Efficiency</span>
+                    </div>
+                    <div class="funnel-bars-container" id="analytics-funnel-bars"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 15. STORE SETTINGS PANE -->
+            <div class="crm-pane" id="pane-settings">
+              <div class="settings-layout">
+                <div class="settings-card">
+                  <h3>Business Profile</h3>
+                  <form id="settings-profile-form">
+                    <div class="form-group">
+                      <label>Store Name</label>
+                      <input type="text" id="set-store-name" class="form-input" value="Starboyz">
+                    </div>
+                    <div class="form-group">
+                      <label>Address</label>
+                      <input type="text" id="set-store-address" class="form-input" value="Starboyz Flagship Store, Bengaluru">
+                    </div>
+                    <div class="form-group">
+                      <label>Operating Hours</label>
+                      <input type="text" id="set-store-hours" class="form-input" value="9:00 AM - 9:00 PM (Monday - Sunday)">
+                    </div>
+                    <div class="form-group">
+                      <label>Shipping Information</label>
+                      <textarea id="set-store-shipping" class="form-input" rows="2">Free shipping on orders above ₹999. Delivered in 3-5 business days across India.</textarea>
+                    </div>
+                    <div class="form-group">
+                      <label>Return & Refund Policy</label>
+                      <textarea id="set-store-return" class="form-input" rows="2">7-day hassle-free return window for unworn shoes with original packaging.</textarea>
+                    </div>
+                    <div class="form-group">
+                      <label>Exchange Policy</label>
+                      <textarea id="set-store-exchange" class="form-input" rows="2">15-day free size exchange available if the fit isn't perfect.</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Settings</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <!-- 16. SYSTEM HEALTH PANE -->
+            <div class="crm-pane" id="pane-health">
+              <div class="health-cards-grid">
+                <div class="health-card online">
+                  <span class="health-icon">⚡</span>
+                  <h4>FastAPI Backend Gateway</h4>
+                  <span class="health-status">ONLINE (Port 8000)</span>
+                  <p>Serving unified CRM endpoints & Webhook handlers.</p>
+                </div>
+                <div class="health-card online">
+                  <span class="health-icon">🔥</span>
+                  <h4>Cloud Firestore Database</h4>
+                  <span class="health-status">ONLINE (Connected)</span>
+                  <p>Authoritative single source of truth for products & CRM data.</p>
+                </div>
+                <div class="health-card online">
+                  <span class="health-icon">🤖</span>
+                  <h4>Google Gemini AI Engine</h4>
+                  <span class="health-status">ONLINE (gemini-3.5-flash-lite)</span>
+                  <p>Autonomous sales conversations & signal extraction.</p>
+                </div>
+                <div class="health-card online">
+                  <span class="health-icon">🔄</span>
+                  <h4>Inventory Synchronization</h4>
+                  <span class="health-status">SYNCHRONIZED (Atomic)</span>
+                  <p>Real-time stock decrement on terminal & CRM orders.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
-      </section>
-
-      <!-- OFFERS & PROMO BANNER SECTION -->
-      <section class="offers-section" id="offers-section">
-        <div class="offers-grid" id="offers-container">
-          <!-- Populated from /api/v1/store/offers -->
-        </div>
-      </section>
-
-      <!-- ORDER TRACKING SECTION -->
-      <section class="tracking-section" id="tracking-section">
-        <div class="tracking-card">
-          <div class="tracking-header">
-            <span class="track-icon">📦</span>
-            <h2>Track Your SOLEVAULT Order</h2>
-            <p>Enter your 6-digit Order ID (e.g. <code>SV-8942</code>) or BlueDart / Delhivery AWB number.</p>
-          </div>
-          <div class="tracking-input-box">
-            <input type="text" id="track-order-input" class="track-input" placeholder="e.g. SV-8942" value="SV-8942">
-            <button class="btn btn-primary" id="track-submit-btn">Track Order</button>
-          </div>
-          <div class="quick-demo-orders">
-            <span>Try sample orders:</span>
-            <button class="chip-link" onclick="quickTrack('SV-8942')">#SV-8942 (Dispatched)</button>
-            <button class="chip-link" onclick="quickTrack('SV-9104')">#SV-9104 (Delivered)</button>
-            <button class="chip-link" onclick="quickTrack('SV-9331')">#SV-9331 (Processing)</button>
-          </div>
-          <div id="tracking-result-box" class="tracking-result-box"></div>
-        </div>
-      </section>
-
-    </main>
-
-    <!-- ===================================================================== -->
-    <!-- SECTION 2: EXECUTIVE ADMIN DASHBOARD SUITE                             -->
-    <!-- ===================================================================== -->
-    <main class="content-container" id="admin-view">
-      <div class="admin-layout">
-        
-        <!-- Admin Header -->
-        <div class="admin-header">
-          <div>
-            <h1 class="admin-title">SOLEVAULT Executive Control Room</h1>
-            <p class="admin-subtitle">Real-time revenue, product catalog CRUD, warehouse stock & order fulfillment.</p>
-          </div>
-          <div class="admin-actions">
-            <button class="btn btn-secondary" id="admin-reseed-btn"><span>🔄</span> Reset Demo Database</button>
-            <button class="btn btn-primary" id="admin-create-product-btn"><span>➕</span> Add New Shoe</button>
-          </div>
-        </div>
-
-        <!-- KPI SUMMARY CARDS -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <span class="kpi-icon">💰</span>
-            <div class="kpi-body">
-              <span class="kpi-label">Total Revenue</span>
-              <span class="kpi-value" id="kpi-total-revenue">₹1,48,990</span>
-              <span class="kpi-trend positive">↑ +18.4% vs last week</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <span class="kpi-icon">📦</span>
-            <div class="kpi-body">
-              <span class="kpi-label">Total Orders</span>
-              <span class="kpi-value" id="kpi-total-orders">34 Orders</span>
-              <span class="kpi-trend positive">↑ 4 Pending Delivery</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <span class="kpi-icon">👟</span>
-            <div class="kpi-body">
-              <span class="kpi-label">Active Catalog</span>
-              <span class="kpi-value" id="kpi-total-products">25 Shoes</span>
-              <span class="kpi-trend neutral">300+ Active Variants</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <span class="kpi-icon">⚠️</span>
-            <div class="kpi-body">
-              <span class="kpi-label">Low Stock Alerts</span>
-              <span class="kpi-value warning-text" id="kpi-low-stock">2 Models</span>
-              <span class="kpi-trend warning">Reorder recommended</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <span class="kpi-icon">💎</span>
-            <div class="kpi-body">
-              <span class="kpi-label">Average Order Value</span>
-              <span class="kpi-value" id="kpi-aov">₹4,382</span>
-              <span class="kpi-trend positive">High Ticket Footwear</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- ANALYTICS SVG CHARTS GRID -->
-        <div class="charts-grid">
-          <div class="chart-card">
-            <div class="chart-header">
-              <span class="chart-title">7-Day Revenue Trend (₹)</span>
-            </div>
-            <div class="svg-chart-container" id="revenue-trend-chart">
-              <!-- SVG chart rendered by JS -->
-            </div>
-          </div>
-          <div class="chart-card">
-            <div class="chart-header">
-              <span class="chart-title">Sales Distribution by Category</span>
-            </div>
-            <div class="category-bars-container" id="category-bars-chart">
-              <!-- Rendered by JS -->
-            </div>
-          </div>
-        </div>
-
-        <!-- ADMIN TABBED TABLES -->
-        <div class="admin-tabs-section">
-          <div class="tab-headers">
-            <button class="tab-btn active" data-tab="admin-products">👟 Product Catalog & Stock</button>
-            <button class="tab-btn" data-tab="admin-orders">📦 Orders & Fulfillment</button>
-            <button class="tab-btn" data-tab="admin-customers">👥 Customers & CRM</button>
-          </div>
-
-          <!-- Product Catalog Tab -->
-          <div class="tab-pane active" id="tab-admin-products">
-            <div class="table-responsive">
-              <table class="data-table" id="admin-products-table">
-                <thead>
-                  <tr>
-                    <th>Shoe ID</th>
-                    <th>Product & SKU</th>
-                    <th>Category</th>
-                    <th>Price / MRP</th>
-                    <th>Available Stock</th>
-                    <th>Rating</th>
-                    <th>Flags</th>
-                    <th>Quick Stock Action</th>
-                  </tr>
-                </thead>
-                <tbody id="admin-products-tbody">
-                  <!-- Populated by JS -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Orders Tab -->
-          <div class="tab-pane" id="tab-admin-orders">
-            <div class="table-responsive">
-              <table class="data-table" id="admin-orders-table">
-                <thead>
-                  <tr>
-                    <th>Order #</th>
-                    <th>Customer</th>
-                    <th>Total (₹)</th>
-                    <th>Payment</th>
-                    <th>Workflow Status</th>
-                    <th>Tracking Number</th>
-                    <th>Date</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody id="admin-orders-tbody">
-                  <!-- Populated by JS -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Customers Tab -->
-          <div class="tab-pane" id="tab-admin-customers">
-            <div class="table-responsive">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>User ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody id="admin-customers-tbody">
-                  <!-- Populated by JS -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-        </div>
-
       </div>
     </main>
 
     <!-- ===================================================================== -->
-    <!-- SECTION 3: WHATSAPP AI SALES AGENT CHAT VIEW                           -->
+    <!-- SECTION 2: STOREFRONT VIEW (Preserved for full compatibility)          -->
     <!-- ===================================================================== -->
-    <main class="content-container" id="chat-view">
+    <main class="content-container" id="storefront-view" style="display: none;">
+      <!-- Preserved storefront contents -->
+      <section class="hero-section">
+        <div class="hero-content">
+          <div class="hero-pill">⚡ STARBOYZ 2026 FOOTWEAR</div>
+          <h1 class="hero-headline">Move Better.<br><span class="gradient-text">Live Better.</span></h1>
+          <p class="hero-subtext">Discover precision-engineered performance runners, lifestyle sneakers and handcrafted formals.</p>
+        </div>
+      </section>
+      <section class="products-section" style="padding: 24px;">
+        <div class="products-grid" id="store-products-grid"></div>
+      </section>
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 3: LIVE WHATSAPP AI CHAT SIMULATOR                            -->
+    <!-- ===================================================================== -->
+    <main class="content-container" id="chat-view" style="display: none;">
       <div class="chat-layout-wrapper">
         <div class="chat-container">
-          
-          <!-- WhatsApp Chat Header -->
           <div class="chat-header">
             <div class="chat-avatar-wrapper">
               <div class="chat-avatar">⚡</div>
               <div class="online-dot"></div>
             </div>
             <div class="chat-header-info">
-              <div class="chat-name-row">
-                <span class="chat-name">SOLEVAULT AI Sales Assistant</span>
-                <span class="verified-badge" title="Official Verified WhatsApp Sales Assistant">✓</span>
-              </div>
-              <span class="chat-status" id="chat-status-text">Online • Grounded in live catalog</span>
-            </div>
-            <div class="chat-header-badges">
-              <span class="ai-badge" id="gemini-status-badge">Gemini 2.5 Flash</span>
-              <span class="fb-badge">Firestore Grounded</span>
-              <button class="api-key-btn" id="open-api-key-modal-btn" style="background: rgba(0, 168, 132, 0.2); color: #25d366; border: 1px solid rgba(0, 168, 132, 0.4); border-radius: 4px; padding: 4px 8px; font-size: 11px; font-weight: 700; cursor: pointer;">🔑 Set API Key</button>
+              <span class="chat-name">Starboyz AI Sales Assistant</span>
+              <span class="chat-status">Online &bull; Grounded in Live Catalog</span>
             </div>
           </div>
-
-          <!-- Quick Test Scenarios -->
-          <div class="quick-scenarios-bar">
-            <span class="scenarios-label">Quick Test:</span>
-            <button class="scenario-btn" onclick="sendTestMsg('I need black running shoes under 5000')">Running &lt; ₹5k</button>
-            <button class="scenario-btn" onclick="sendTestMsg('Do you have size 14 in AeroSprint X1?')">Invalid Size (14)</button>
-            <button class="scenario-btn" onclick="sendTestMsg('bro stock iruka UrbanFlex 200?')">Tanglish Stock Query</button>
-            <button class="scenario-btn" onclick="sendTestMsg('Can you give Velocity One for ₹3000?')">Discount Exploit</button>
-            <button class="scenario-btn" onclick="sendTestMsg('Where is my order #SV-8942?')">Order Tracking</button>
-            <button class="scenario-btn" onclick="sendTestMsg('What is your return policy?')">Return Policy</button>
-          </div>
-
-          <!-- Chat Transcript Box -->
-          <div class="chat-messages" id="chat-messages-box">
-            <!-- Messages populated by JS -->
-          </div>
-
-          <!-- Typing Indicator -->
-          <div class="typing-indicator-box" id="typing-indicator" style="display: none;">
-            <div class="typing-bubble">
-              <span class="dot"></span>
-              <span class="dot"></span>
-              <span class="dot"></span>
-            </div>
-            <span class="typing-label">SOLEVAULT AI is typing...</span>
-          </div>
-
-          <!-- Chat Input Bar -->
+          <div class="chat-messages" id="chat-messages-box"></div>
           <div class="chat-input-bar">
-            <input type="text" id="chat-input" class="chat-input" placeholder="Type a message (e.g. 'Show me comfortable walking shoes for women')..." autocomplete="off">
-            <button class="chat-send-btn" id="chat-send-btn">
-              <span>➤</span>
-            </button>
+            <input type="text" id="chat-input" class="chat-input" placeholder="Type a message (e.g. 'bro running shoe iruka?')...">
+            <button class="chat-send-btn" id="chat-send-btn">➤</button>
           </div>
-
         </div>
       </div>
     </main>
@@ -579,169 +870,155 @@
     <!-- GLOBAL MODALS & DRAWERS                                               -->
     <!-- ===================================================================== -->
 
-    <!-- PRODUCT DETAIL MODAL -->
-    <div class="modal-overlay" id="product-detail-modal">
-      <div class="modal-card product-modal-card">
+    <!-- LEAD 360 DETAIL MODAL -->
+    <div class="modal-overlay" id="lead-modal">
+      <div class="modal-card modal-lg">
+        <button class="modal-close-btn" id="close-lead-modal">✕</button>
+        <div id="lead-modal-content"></div>
+      </div>
+    </div>
+
+    <!-- CUSTOMER 360 DETAIL MODAL -->
+    <div class="modal-overlay" id="customer-modal">
+      <div class="modal-card modal-lg">
+        <button class="modal-close-btn" id="close-customer-modal">✕</button>
+        <div id="customer-modal-content"></div>
+      </div>
+    </div>
+
+    <!-- PRODUCT DETAIL / EDIT MODAL -->
+    <div class="modal-overlay" id="product-modal">
+      <div class="modal-card modal-lg">
         <button class="modal-close-btn" id="close-product-modal">✕</button>
-        <div class="product-modal-grid" id="product-modal-content">
-          <!-- Dynamically populated -->
-        </div>
+        <div id="product-modal-content"></div>
       </div>
     </div>
 
-    <!-- CART SLIDING DRAWER -->
-    <div class="drawer-overlay" id="cart-drawer-overlay">
-      <div class="cart-drawer">
-        <div class="drawer-header">
-          <div class="drawer-title-row">
-            <span class="drawer-title">Shopping Cart</span>
-            <span class="drawer-count" id="cart-drawer-count">(0 items)</span>
+    <!-- ATOMIC STOCK ADJUSTMENT MODAL -->
+    <div class="modal-overlay" id="adjust-stock-modal">
+      <div class="modal-card" style="max-width: 480px;">
+        <button class="modal-close-btn" id="close-adjust-stock-modal">✕</button>
+        <h3>Adjust Inventory Stock</h3>
+        <p class="text-muted" style="margin-bottom: 16px;">Perform atomic stock adjustments with full audit reason tracking.</p>
+        <form id="adjust-stock-form">
+          <div class="form-group">
+            <label>Select Shoe Product *</label>
+            <select id="adj-product-select" class="select-input" required></select>
           </div>
-          <button class="modal-close-btn" id="close-cart-drawer">✕</button>
-        </div>
-
-        <!-- Free Shipping Progress -->
-        <div class="free-shipping-box" id="free-shipping-box">
-          <div class="shipping-progress-text" id="free-shipping-text">Add ₹1,500 more for Free Express Delivery</div>
-          <div class="progress-bar-bg">
-            <div class="progress-bar-fill" id="free-shipping-bar" style="width: 0%;"></div>
+          <div class="form-group">
+            <label>Quantity Delta (+ to Add, - to Deduct) *</label>
+            <input type="number" id="adj-delta" class="form-input" placeholder="e.g. 10 or -2" required>
           </div>
-        </div>
-
-        <!-- Cart Line Items -->
-        <div class="cart-items-list" id="cart-items-container">
-          <!-- Cart items rendered by JS -->
-        </div>
-
-        <!-- Coupon Input Box -->
-        <div class="coupon-box">
-          <input type="text" id="coupon-code-input" class="coupon-input" placeholder="Enter coupon (STRIDE10, WELCOME500)" style="text-transform: uppercase;">
-          <button class="btn btn-secondary" id="apply-coupon-btn">Apply</button>
-        </div>
-        <div id="coupon-feedback" class="coupon-feedback"></div>
-
-        <!-- Cart Summary Footer -->
-        <div class="cart-footer">
-          <div class="summary-line">
-            <span>Subtotal</span>
-            <span id="cart-subtotal">₹0</span>
+          <div class="form-group">
+            <label>Reason for Movement *</label>
+            <select id="adj-reason" class="select-input" required>
+              <option value="restock">Warehouse Restock (+)</option>
+              <option value="manual_adjustment">Manual Inventory Correction</option>
+              <option value="damaged">Damaged / Defective Stock (-)</option>
+              <option value="return">Customer Return (+)</option>
+              <option value="audit">Periodic Stock Audit</option>
+            </select>
           </div>
-          <div class="summary-line discount-line" id="cart-discount-row" style="display: none;">
-            <span>Coupon Discount</span>
-            <span id="cart-coupon-discount">-₹0</span>
+          <div class="form-group">
+            <label>Reference Note / PO # (Optional)</label>
+            <input type="text" id="adj-reference" class="form-input" placeholder="e.g. PO-8921">
           </div>
-          <div class="summary-line">
-            <span>Estimated GST (18%)</span>
-            <span id="cart-tax">₹0</span>
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button type="button" class="btn btn-secondary" onclick="crmApp.closeModal('adjust-stock-modal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Atomic Stock</button>
           </div>
-          <div class="summary-line">
-            <span>Shipping</span>
-            <span id="cart-shipping">₹0</span>
-          </div>
-          <div class="summary-line total-line">
-            <span>Total Amount</span>
-            <span id="cart-total">₹0</span>
-          </div>
-          <button class="btn btn-primary btn-block btn-lg" id="proceed-checkout-btn">
-            Proceed to Checkout ➔
-          </button>
-        </div>
+        </form>
       </div>
     </div>
 
-    <!-- MULTI-STEP CHECKOUT MODAL -->
-    <div class="modal-overlay" id="checkout-modal">
-      <div class="modal-card checkout-modal-card">
-        <button class="modal-close-btn" id="close-checkout-modal">✕</button>
-        <div class="checkout-wrapper">
-          <div class="checkout-header">
-            <h2>Secure Checkout</h2>
-            <div class="checkout-steps-indicator">
-              <span class="step-badge active">1. Contact & Address</span>
-              <span class="step-arrow">➔</span>
-              <span class="step-badge active">2. Payment</span>
-              <span class="step-arrow">➔</span>
-              <span class="step-badge">3. Confirmation</span>
-            </div>
+    <!-- CREATE QUOTE MODAL -->
+    <div class="modal-overlay" id="quote-modal">
+      <div class="modal-card" style="max-width: 520px;">
+        <button class="modal-close-btn" id="close-quote-modal">✕</button>
+        <h3>Generate Customer Quote</h3>
+        <form id="create-quote-form">
+          <div class="form-group">
+            <label>Customer Name *</label>
+            <input type="text" id="quote-cust-name" class="form-input" required placeholder="Rishvanth">
           </div>
-
-          <form id="checkout-form" class="checkout-form">
-            <div class="form-grid">
-              <div class="form-group full-width">
-                <label>Full Name *</label>
-                <input type="text" id="co-name" class="form-input" placeholder="Rohan Patel" required value="Rohan Patel">
-              </div>
-              <div class="form-group">
-                <label>Email Address *</label>
-                <input type="email" id="co-email" class="form-input" placeholder="rohan@example.com" required value="rohan@example.com">
-              </div>
-              <div class="form-group">
-                <label>Phone Number *</label>
-                <input type="tel" id="co-phone" class="form-input" placeholder="+91 98765 43210" required value="+919876543210">
-              </div>
-              <div class="form-group full-width">
-                <label>Address Line 1 *</label>
-                <input type="text" id="co-addr1" class="form-input" placeholder="Flat 402, Skyline Towers" required value="Flat 402, Skyline Towers">
-              </div>
-              <div class="form-group">
-                <label>City *</label>
-                <input type="text" id="co-city" class="form-input" placeholder="Bengaluru" required value="Bengaluru">
-              </div>
-              <div class="form-group">
-                <label>State *</label>
-                <input type="text" id="co-state" class="form-input" placeholder="Karnataka" required value="Karnataka">
-              </div>
-              <div class="form-group">
-                <label>Postal Code *</label>
-                <input type="text" id="co-pin" class="form-input" placeholder="560038" required value="560038">
-              </div>
-              <div class="form-group">
-                <label>Payment Method *</label>
-                <select id="co-payment" class="select-input">
-                  <option value="UPI">Instant UPI (GPay / PhonePe / Paytm)</option>
-                  <option value="Credit Card">Credit / Debit Card</option>
-                  <option value="Net Banking">Net Banking</option>
-                  <option value="Cash on Delivery">Cash on Delivery (COD)</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="checkout-summary-box">
-              <div class="summary-line total-line">
-                <span>Final Payable:</span>
-                <span id="checkout-payable-total">₹0</span>
-              </div>
-            </div>
-
-            <button type="submit" class="btn btn-primary btn-block btn-lg" id="place-order-submit-btn">
-              <span>🔒</span> Place Order & Generate Tracking ID
-            </button>
-          </form>
-
-          <div id="checkout-success-view" class="checkout-success-view" style="display: none;">
-            <div class="success-icon">🎉</div>
-            <h3>Order Placed Successfully!</h3>
-            <p>Thank you for choosing SOLEVAULT. Your order has been confirmed.</p>
-            <div class="order-receipt-badge" id="success-order-number">Order #SV-8942</div>
-            <div class="success-actions">
-              <button class="btn btn-primary" id="success-track-btn">Track Order Live</button>
-              <button class="btn btn-secondary" id="success-continue-btn">Continue Shopping</button>
-            </div>
+          <div class="form-group">
+            <label>Contact Phone Number *</label>
+            <input type="tel" id="quote-cust-phone" class="form-input" required placeholder="+919876543210">
           </div>
-        </div>
+          <div class="form-group">
+            <label>Shoe Item *</label>
+            <select id="quote-product-select" class="select-input" required></select>
+          </div>
+          <div class="form-group">
+            <label>Quantity *</label>
+            <input type="number" id="quote-qty" class="form-input" value="1" min="1" required>
+          </div>
+          <div class="form-group">
+            <label>Discount Amount (₹)</label>
+            <input type="number" id="quote-discount" class="form-input" value="0" min="0">
+          </div>
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button type="button" class="btn btn-secondary" onclick="crmApp.closeModal('quote-modal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Generate Quote</button>
+          </div>
+        </form>
       </div>
     </div>
 
-    <!-- COMPARISON DRAWER -->
-    <div class="drawer-overlay" id="compare-drawer-overlay">
-      <div class="compare-drawer">
-        <div class="drawer-header">
-          <span class="drawer-title">Side-by-Side Shoe Comparison (Up to 4)</span>
-          <button class="modal-close-btn" id="close-compare-drawer">✕</button>
-        </div>
-        <div class="compare-matrix-container" id="compare-matrix-container">
-          <!-- Comparison columns rendered by JS -->
-        </div>
+    <!-- CREATE TASK MODAL -->
+    <div class="modal-overlay" id="task-modal">
+      <div class="modal-card" style="max-width: 480px;">
+        <button class="modal-close-btn" id="close-task-modal">✕</button>
+        <h3>Add Sales Task / Follow-up</h3>
+        <form id="create-task-form">
+          <div class="form-group">
+            <label>Task Title *</label>
+            <input type="text" id="task-title-input" class="form-input" placeholder="Call customer regarding size 9" required>
+          </div>
+          <div class="form-group">
+            <label>Customer Name</label>
+            <input type="text" id="task-cust-input" class="form-input" placeholder="Rishvanth">
+          </div>
+          <div class="form-group">
+            <label>Due Date *</label>
+            <input type="date" id="task-due-date" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label>Priority</label>
+            <select id="task-priority-select" class="select-input">
+              <option value="urgent">Urgent</option>
+              <option value="high">High</option>
+              <option value="medium" selected>Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button type="button" class="btn btn-secondary" onclick="crmApp.closeModal('task-modal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Task</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- CREATE TAG MODAL -->
+    <div class="modal-overlay" id="tag-modal">
+      <div class="modal-card" style="max-width: 420px;">
+        <button class="modal-close-btn" id="close-tag-modal">✕</button>
+        <h3>Create CRM Tag</h3>
+        <form id="create-tag-form">
+          <div class="form-group">
+            <label>Tag Name *</label>
+            <input type="text" id="tag-name-input" class="form-input" placeholder="e.g. VIP Customer" required>
+          </div>
+          <div class="form-group">
+            <label>Tag Color</label>
+            <input type="color" id="tag-color-input" class="form-input" value="#3b82f6" style="height: 44px; padding: 4px;">
+          </div>
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button type="button" class="btn btn-secondary" onclick="crmApp.closeModal('tag-modal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Tag</button>
+          </div>
+        </form>
       </div>
     </div>
 
@@ -750,37 +1027,13 @@
       <div class="modal-card search-modal-card">
         <div class="search-input-header">
           <span class="search-icon">🔍</span>
-          <input type="text" id="global-search-input" class="global-search-input" placeholder="Search by shoe name, category, material, or SKU (e.g. 'AeroSprint', 'Trekking', 'Waterproof')...">
+          <input type="text" id="global-search-input" class="global-search-input" placeholder="Search leads, customers, products, orders, quotes, conversations...">
           <button class="modal-close-btn" id="close-search-modal">✕</button>
         </div>
         <div class="search-results-box" id="search-results-box">
-          <div class="popular-searches">
-            <span>Popular Searches:</span>
-            <button class="chip-link" onclick="searchQuick('Running')">Running Shoes</button>
-            <button class="chip-link" onclick="searchQuick('AeroSprint')">AeroSprint X1</button>
-            <button class="chip-link" onclick="searchQuick('Trekking')">Trekking Shoes</button>
-            <button class="chip-link" onclick="searchQuick('Sneakers')">Casual Sneakers</button>
+          <div class="search-live-grid" id="search-live-grid">
+            <div class="empty-state">Type a search query to explore across all CRM business entities.</div>
           </div>
-          <div class="search-live-grid" id="search-live-grid"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- GEMINI API KEY MODAL -->
-    <div class="modal-overlay" id="api-key-modal">
-      <div class="modal-card" style="max-width: 480px; background: #1f2c34; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-lg); padding: 24px;">
-        <button class="modal-close-btn" id="close-api-key-modal" style="top: 16px; right: 16px;">✕</button>
-        <h3 style="font-size: 18px; color: #e9edef; margin-bottom: 8px;">🔑 Configure Google Gemini API Key</h3>
-        <p style="font-size: 13px; color: #8696a0; line-height: 1.5; margin-bottom: 16px;">
-          Paste your Google Gemini API Key below to enable live, real-time unscripted AI sales conversations strictly grounded in Cloud Firestore product data.
-        </p>
-        <div style="margin-bottom: 18px;">
-          <label style="font-size: 12px; font-weight: 700; color: #d1d7db; display: block; margin-bottom: 6px;">Gemini API Key</label>
-          <input type="password" id="gemini-key-input" style="width: 100%; border: 1px solid rgba(255,255,255,0.15); padding: 12px 14px; border-radius: var(--radius-md); background: #111b21; color: #fff; font-family: monospace; font-size: 13px; outline: none;" placeholder="AIzaSy..." />
-        </div>
-        <div style="display: flex; gap: 10px; justify-content: flex-end;">
-          <button class="btn-secondary" id="cancel-api-key-btn" style="background: transparent; color: #8696a0; border: 1px solid rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 6px; cursor: pointer;">Cancel</button>
-          <button class="btn-primary" id="save-api-key-btn" style="background: #00a884; color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-weight: 700; cursor: pointer;">Save & Activate</button>
         </div>
       </div>
     </div>
