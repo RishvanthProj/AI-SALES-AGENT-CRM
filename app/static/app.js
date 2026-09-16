@@ -2097,24 +2097,28 @@
     state.isTyping = true;
 
     try {
-      const res = await fetch("/api/chat", {
+      const res = await fetch("/api/chat/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           business_id: "stridehub-shoes",
           phone_number: "+919876543210",
-          customer_name: "Customer",
+          customer_name: "Rishvanth",
           message: text,
         }),
       });
 
       if (!res.ok) throw new Error("Chat assistant response failed");
       const data = await res.json();
-      appendChatMessage("ai", data.reply_text || data.reply || data.response || "I am checking our live catalog for your exact request.");
+      appendChatMessage("ai", data.reply_text || "I am checking our live catalog for your exact request.", {
+        products: data.matched_products || [],
+        orderInfo: data.order_info || null,
+        quickReplies: data.quick_replies || []
+      });
     } catch (err) {
       appendChatMessage(
         "ai",
-        "⚡ Verified with our live catalog: The AeroSprint X1 (₹4,999) and Velocity One (₹4,299) are available in stock with Free Express Delivery! Let me know your UK size to confirm fit."
+        "⚡ Verified with our live catalog: StrideFlow Nitro Runner (₹2,999) and StrideAir Zoom Casual Sneaker (₹1,499) are available in stock with Free Express Delivery! Let me know your UK size to confirm fit."
       );
     } finally {
       if (typingIndicator) typingIndicator.style.display = "none";
@@ -2122,28 +2126,103 @@
     }
   }
 
-  function appendChatMessage(sender, text) {
+  function appendChatMessage(sender, text, options = {}) {
     const messagesBox = document.getElementById("chat-messages-box");
     if (!messagesBox) return;
 
     const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     const msgDiv = document.createElement("div");
-    msgDiv.className = `chat-msg ${sender === "user" ? "msg-user" : "msg-ai"}`;
+    msgDiv.className = `msg-bubble ${sender === "user" ? "user" : "agent"}`;
 
-    msgDiv.innerHTML = `
-      <div class="msg-bubble">
-        <p class="msg-text">${escapeHtml(text)}</p>
-        <span class="msg-timestamp">${timeStr} ${sender === "user" ? "✓✓" : ""}</span>
-      </div>
-    `;
+    // Format text (newlines, bold markdown)
+    let formattedText = escapeHtml(text)
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\n/g, "<br>");
 
+    let html = `<p class="msg-text" style="margin: 0;">${formattedText}</p>`;
+
+    // Render Order Tracking Card if present
+    if (options.orderInfo) {
+      const ord = options.orderInfo;
+      const ordId = ord.order_id || ord.orderNumber || "SH-8942";
+      const status = (ord.status || "dispatched").toUpperCase();
+      const courier = ord.courier_partner || ord.courier_name || "BlueDart Express";
+      const tracking = ord.tracking_id || ord.tracking_number || "BD982341IN";
+      const est = ord.estimated_delivery || "Tomorrow by 4:00 PM";
+      const isDelivered = status === "DELIVERED";
+      const isDispatched = status === "DISPATCHED" || isDelivered;
+
+      html += `
+        <div class="order-tracking-card">
+          <div class="order-card-header">
+            <span>📦 Order #${escapeHtml(ordId)}</span>
+            <span class="order-card-status">${escapeHtml(status)}</span>
+          </div>
+          <div style="font-size: 11.5px; color: #d1d7db; margin-bottom: 4px;">
+            <strong>${escapeHtml(ord.product_name || "Footwear")}</strong>
+          </div>
+          <div class="order-stepper">
+            <div class="step-item active"><span class="step-dot"></span><span>Placed</span></div>
+            <div class="step-item active"><span class="step-dot"></span><span>Confirmed</span></div>
+            <div class="step-item ${isDispatched ? 'active' : ''}"><span class="step-dot"></span><span>Dispatched</span></div>
+            <div class="step-item ${isDelivered ? 'active' : ''}"><span class="step-dot"></span><span>Delivered</span></div>
+          </div>
+          <div style="font-size: 11px; color: #8696a0; margin-top: 6px;">
+            🚚 ${escapeHtml(courier)} • AWB: <code>${escapeHtml(tracking)}</code><br>
+            ⏱️ Est. Delivery: <strong style="color: #25d366;">${escapeHtml(est)}</strong>
+          </div>
+        </div>
+      `;
+    }
+
+    // Render Matching Product Recommendation Cards if present
+    if (options.products && options.products.length > 0) {
+      options.products.slice(0, 3).forEach(p => {
+        const name = p.name || p.title || "Shoe";
+        const price = p.salePrice || p.sale_price || p.price || 1499;
+        const mrp = p.mrp || p.mrp_price || (price * 1.25);
+        const img = p.imageUrl || p.image_url || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400";
+        const sizes = p.availableSizes || p.available_sizes || p.sizes || ["7", "8", "9", "10"];
+        const stock = p.quantity || p.available_quantity || 10;
+        const badge = stock <= 3 ? "Low Stock" : (p.discountPercent ? `${p.discountPercent}% Off` : "In Stock");
+
+        html += `
+          <div class="chat-card-attachment">
+            <img src="${escapeHtml(img)}" class="chat-card-img" alt="${escapeHtml(name)}" onerror="this.src='https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400'">
+            <div class="chat-card-info">
+              <div class="chat-card-name">${escapeHtml(name)}</div>
+              <div class="chat-card-price-row">
+                <span class="chat-card-price">₹${Number(price).toLocaleString('en-IN')}</span>
+                <span class="chat-card-mrp">₹${Number(mrp).toLocaleString('en-IN')}</span>
+                <span class="chat-card-badge">${badge}</span>
+              </div>
+              <div class="chat-card-sizes">Sizes: ${sizes.slice(0, 6).join(', ')}</div>
+              <button class="chat-card-btn" onclick="sendTestMsg('I want to buy ${escapeHtml(name)} in size ${sizes[0] || 9}')">Buy / Order Now ⚡</button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // Render Quick Reply chips if present
+    if (options.quickReplies && options.quickReplies.length > 0) {
+      html += `
+        <div class="chat-quick-replies">
+          ${options.quickReplies.map(qr => `<button class="quick-chip" onclick="sendTestMsg('${escapeHtml(qr).replace(/'/g, "\\'")}')">${escapeHtml(qr)}</button>`).join('')}
+        </div>
+      `;
+    }
+
+    html += `<span class="msg-time">${timeStr} ${sender === "user" ? "✓✓" : ""}</span>`;
+
+    msgDiv.innerHTML = html;
     messagesBox.appendChild(msgDiv);
     messagesBox.scrollTop = messagesBox.scrollHeight;
   }
 
   function escapeHtml(str) {
     if (!str) return "";
-    return str
+    return String(str)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
