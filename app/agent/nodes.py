@@ -17,35 +17,41 @@ def greet_node(state: SalesAgentState) -> Dict[str, Any]:
     incoming = state.get("incoming_message", "")
     history = state.get("history", [])
 
-    # Extract structured signals
-    sales_info = ai.extract_sales_signals(incoming, history)
+    if state.get("extracted_sales"):
+        from app.schemas.ai import SalesExtraction
+        sales_info = SalesExtraction(**state["extracted_sales"])
+    else:
+        sales_info = ai.extract_sales_signals(incoming, history)
     b_settings = firebase_service.get_business_settings(tenant_id)
 
-    context = GroundedResponseContext(
-        business_name=b_settings.business_name,
-        business_description=b_settings.business_description,
-        current_stage="greet",
-        lead_name=state.get("lead_name"),
-        conversation_history=history,
-        customer_message=incoming,
-        known_signals={"intent": sales_info.intent}
-    )
+    reply_text = state.get("reply_text")
+    if not reply_text:
+        context = GroundedResponseContext(
+            business_name=b_settings.business_name,
+            business_description=b_settings.business_description,
+            current_stage="greet",
+            lead_name=state.get("lead_name"),
+            conversation_history=history,
+            customer_message=incoming,
+            known_signals={"intent": sales_info.intent}
+        )
 
-    reply = ai.generate_conversational_response(context)
-    val_res = validation_service.validate_and_sanitize_response(
-        generated_reply=reply,
-        verified_products=[],
-        inventory_data=None,
-        business_settings=b_settings,
-        customer_message=incoming
-    )
+        reply = ai.generate_conversational_response(context)
+        val_res = validation_service.validate_and_sanitize_response(
+            generated_reply=reply,
+            verified_products=[],
+            inventory_data=None,
+            business_settings=b_settings,
+            customer_message=incoming
+        )
+        reply_text = val_res.sanitized_text
 
     return {
         "current_stage": "greet",
         "extracted_sales": sales_info.model_dump(),
         "is_inappropriate": sales_info.inappropriate_content,
         "is_jailbreak": sales_info.is_jailbreak_attempt,
-        "reply_text": val_res.sanitized_text
+        "reply_text": reply_text
     }
 
 
@@ -61,7 +67,12 @@ def qualify_node(state: SalesAgentState) -> Dict[str, Any]:
     incoming = state.get("incoming_message", "")
     history = state.get("history", [])
 
-    sales_info = ai.extract_sales_signals(incoming, history)
+    if state.get("extracted_sales"):
+        from app.schemas.ai import SalesExtraction
+        sales_info = SalesExtraction(**state["extracted_sales"])
+    else:
+        sales_info = ai.extract_sales_signals(incoming, history)
+
     b_settings = firebase_service.get_business_settings(tenant_id)
 
     # Query Firebase for authentic matching products
@@ -84,32 +95,6 @@ def qualify_node(state: SalesAgentState) -> Dict[str, Any]:
             color=sales_info.color
         )
 
-    context = GroundedResponseContext(
-        business_name=b_settings.business_name,
-        business_description=b_settings.business_description,
-        current_stage="qualify",
-        lead_name=state.get("lead_name"),
-        conversation_history=history,
-        verified_products=verified_prods,
-        inventory_data=inventory_data,
-        customer_message=incoming,
-        known_signals={
-            "need": query_text,
-            "budget": sales_info.budget,
-            "size": sales_info.size,
-            "color": sales_info.color
-        }
-    )
-
-    reply = ai.generate_conversational_response(context)
-    val_res = validation_service.validate_and_sanitize_response(
-        generated_reply=reply,
-        verified_products=verified_prods,
-        inventory_data=inventory_data,
-        business_settings=b_settings,
-        customer_message=incoming
-    )
-
     need_summary = query_text if query_text.strip() else state.get("need_summary")
 
     return {
@@ -119,8 +104,7 @@ def qualify_node(state: SalesAgentState) -> Dict[str, Any]:
         "inventory_data": inventory_data,
         "extracted_sales": sales_info.model_dump(),
         "is_inappropriate": sales_info.inappropriate_content,
-        "is_jailbreak": sales_info.is_jailbreak_attempt,
-        "reply_text": val_res.sanitized_text
+        "is_jailbreak": sales_info.is_jailbreak_attempt
     }
 
 
@@ -130,41 +114,14 @@ def collect_budget_node(state: SalesAgentState) -> Dict[str, Any]:
     Extracts structured budget signal from incoming message or previous state.
     Graph controls state -> sets current_stage to 'collect_budget'.
     """
-    ai = get_ai_provider()
-    tenant_id = state.get("tenant_id", "default")
-    incoming = state.get("incoming_message", "")
-    history = state.get("history", [])
-
-    budget_data = ai.extract_budget(message_text=incoming)
-    current_budget = state.get("budget_signal") or budget_data.budget_range
-
-    b_settings = firebase_service.get_business_settings(tenant_id)
-
-    context = GroundedResponseContext(
-        business_name=b_settings.business_name,
-        business_description=b_settings.business_description,
-        current_stage="collect_budget",
-        lead_name=state.get("lead_name"),
-        conversation_history=history,
-        verified_products=state.get("verified_products", []),
-        inventory_data=state.get("inventory_data"),
-        customer_message=incoming,
-        known_signals={"budget_signal": current_budget}
-    )
-
-    reply = ai.generate_conversational_response(context)
-    val_res = validation_service.validate_and_sanitize_response(
-        generated_reply=reply,
-        verified_products=state.get("verified_products", []),
-        inventory_data=state.get("inventory_data"),
-        business_settings=b_settings,
-        customer_message=incoming
-    )
+    ext_data = state.get("extracted_sales") or {}
+    budget_val = ext_data.get("budget")
+    b_range = ext_data.get("budget_range") or (f"Rs. {int(budget_val)}" if budget_val else None)
+    current_budget = state.get("budget_signal") or b_range
 
     return {
         "current_stage": "collect_budget",
-        "budget_signal": current_budget,
-        "reply_text": val_res.sanitized_text
+        "budget_signal": current_budget
     }
 
 
@@ -174,44 +131,13 @@ def collect_timeline_node(state: SalesAgentState) -> Dict[str, Any]:
     Extracts structured timeline signal from incoming message.
     Graph controls state -> sets current_stage to 'collect_timeline'.
     """
-    ai = get_ai_provider()
-    tenant_id = state.get("tenant_id", "default")
-    incoming = state.get("incoming_message", "")
-    history = state.get("history", [])
-
-    timeline_data = ai.extract_timeline(message_text=incoming)
-    current_timeline = state.get("timeline_signal") or timeline_data.timeline_str
-
-    b_settings = firebase_service.get_business_settings(tenant_id)
-
-    context = GroundedResponseContext(
-        business_name=b_settings.business_name,
-        business_description=b_settings.business_description,
-        current_stage="collect_timeline",
-        lead_name=state.get("lead_name"),
-        conversation_history=history,
-        verified_products=state.get("verified_products", []),
-        inventory_data=state.get("inventory_data"),
-        customer_message=incoming,
-        known_signals={
-            "budget_signal": state.get("budget_signal"),
-            "timeline_signal": current_timeline
-        }
-    )
-
-    reply = ai.generate_conversational_response(context)
-    val_res = validation_service.validate_and_sanitize_response(
-        generated_reply=reply,
-        verified_products=state.get("verified_products", []),
-        inventory_data=state.get("inventory_data"),
-        business_settings=b_settings,
-        customer_message=incoming
-    )
+    ext_data = state.get("extracted_sales") or {}
+    timeline_val = ext_data.get("timeline")
+    current_timeline = state.get("timeline_signal") or timeline_val
 
     return {
         "current_stage": "collect_timeline",
-        "timeline_signal": current_timeline,
-        "reply_text": val_res.sanitized_text
+        "timeline_signal": current_timeline
     }
 
 
@@ -268,34 +194,37 @@ def route_node(state: SalesAgentState) -> Dict[str, Any]:
     history = state.get("history", [])
     incoming = state.get("incoming_message", "")
 
-    context = GroundedResponseContext(
-        business_name=b_settings.business_name,
-        business_description=b_settings.business_description,
-        current_stage="route",
-        lead_name=state.get("lead_name"),
-        conversation_history=history,
-        verified_products=state.get("verified_products", []),
-        inventory_data=state.get("inventory_data"),
-        customer_message=incoming,
-        known_signals={
-            "score": score,
-            "route": destination,
-            "budget_signal": state.get("budget_signal"),
-            "timeline_signal": state.get("timeline_signal")
-        }
-    )
+    reply_text = state.get("reply_text")
+    if not reply_text:
+        context = GroundedResponseContext(
+            business_name=b_settings.business_name,
+            business_description=b_settings.business_description,
+            current_stage="route",
+            lead_name=state.get("lead_name"),
+            conversation_history=history,
+            verified_products=state.get("verified_products", []),
+            inventory_data=state.get("inventory_data"),
+            customer_message=incoming,
+            known_signals={
+                "score": score,
+                "route": destination,
+                "budget_signal": state.get("budget_signal"),
+                "timeline_signal": state.get("timeline_signal")
+            }
+        )
 
-    reply = ai.generate_conversational_response(context)
-    val_res = validation_service.validate_and_sanitize_response(
-        generated_reply=reply,
-        verified_products=state.get("verified_products", []),
-        inventory_data=state.get("inventory_data"),
-        business_settings=b_settings,
-        customer_message=incoming
-    )
+        reply = ai.generate_conversational_response(context)
+        val_res = validation_service.validate_and_sanitize_response(
+            generated_reply=reply,
+            verified_products=state.get("verified_products", []),
+            inventory_data=state.get("inventory_data"),
+            business_settings=b_settings,
+            customer_message=incoming
+        )
+        reply_text = val_res.sanitized_text
 
     return {
         "current_stage": "route",
         "route_destination": destination,
-        "reply_text": val_res.sanitized_text
+        "reply_text": reply_text
     }

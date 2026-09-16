@@ -559,7 +559,8 @@ def process_message(
     return {
         "reply_text": final_reply,
         "matched_products": [p.model_dump() for p in matched_products[:2]] if is_specific_query else [],
-        "order_info": order_info
+        "order_info": order_info,
+        "sales_info": sales_info
     }
 
 

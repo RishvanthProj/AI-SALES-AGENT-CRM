@@ -27,6 +27,7 @@ class SalesExtraction(BaseModel):
     is_urgent: bool = Field(default=False, description="Whether user expressed urgency")
     size: Optional[str] = Field(None, description="Size preference e.g. 'S', 'M', 'L', 'XL', '9'")
     color: Optional[str] = Field(None, description="Color preference e.g. 'black', 'blue'")
+    customization_notes: Optional[str] = Field(None, description="Customization requirement or notes")
     customer_name: Optional[str] = Field(None, description="Customer name if given in message")
     requires_human: bool = Field(default=False, description="True if complex question or escalation requested")
     inappropriate_content: bool = Field(default=False, description="True if message contains abusive/vulgar/offensive language")
