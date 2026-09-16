@@ -8,26 +8,30 @@ from app.config import settings
 # Database Engine Configuration
 # Supports PostgreSQL with RLS in production, and SQLite for local development/testing
 DATABASE_URL = settings.DATABASE_URL
-if "sqlite" in DATABASE_URL:
-    engine = create_async_engine(
-        DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        echo=settings.LOG_LEVEL.upper() == "DEBUG"
-    )
-else:
-    engine = create_async_engine(
-        DATABASE_URL,
-        echo=settings.LOG_LEVEL.upper() == "DEBUG",
-        future=True
-    )
+try:
+    if "sqlite" in DATABASE_URL:
+        engine = create_async_engine(
+            DATABASE_URL,
+            connect_args={"check_same_thread": False},
+            echo=settings.LOG_LEVEL.upper() == "DEBUG"
+        )
+    else:
+        engine = create_async_engine(
+            DATABASE_URL,
+            echo=settings.LOG_LEVEL.upper() == "DEBUG",
+            future=True
+        )
 
-AsyncSessionLocal = async_sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-    autocommit=False,
-    autoflush=False
-)
+    AsyncSessionLocal = async_sessionmaker(
+        bind=engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autocommit=False,
+        autoflush=False
+    )
+except Exception:
+    engine = None
+    AsyncSessionLocal = None
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:

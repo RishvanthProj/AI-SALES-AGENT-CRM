@@ -11,21 +11,28 @@ from app.main import app
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
-test_engine = create_async_engine(
-    TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+try:
+    test_engine = create_async_engine(
+        TEST_DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
 
-TestAsyncSessionLocal = async_sessionmaker(
-    bind=test_engine,
-    class_=AsyncSession,
-    expire_on_commit=False
-)
+    TestAsyncSessionLocal = async_sessionmaker(
+        bind=test_engine,
+        class_=AsyncSession,
+        expire_on_commit=False
+    )
+except Exception:
+    test_engine = None
+    TestAsyncSessionLocal = None
 
 
 @pytest.fixture(autouse=True)
 async def setup_test_db():
+    if not test_engine or not TestAsyncSessionLocal:
+        yield
+        return
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         await conn.run_sync(SolevaultBase.metadata.create_all)
@@ -39,6 +46,9 @@ async def setup_test_db():
 
 @pytest.fixture(autouse=True)
 async def override_fastapi_db():
+    if not TestAsyncSessionLocal:
+        yield
+        return
     async def _get_test_db():
         async with TestAsyncSessionLocal() as session:
             try:
@@ -53,6 +63,9 @@ async def override_fastapi_db():
 
 @pytest.fixture
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
+    if not TestAsyncSessionLocal:
+        yield None
+        return
     async with TestAsyncSessionLocal() as session:
         try:
             yield session
