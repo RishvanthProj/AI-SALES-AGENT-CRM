@@ -4,18 +4,38 @@ StrideHub Shoes — Interactive Terminal AI Sales Agent
 Direct conversational interface powered by Google Gemini and Cloud Firestore.
 """
 
+import os
 import sys
 import asyncio
 import re
 import warnings
 import logging
+import contextlib
 from typing import List, Dict, Any
 
 warnings.filterwarnings("ignore")
-warnings.filterwarnings("ignore", category=UserWarning)
-warnings.filterwarnings("ignore", module="google")
 logging.getLogger("google").setLevel(logging.ERROR)
 logging.getLogger("google.genai").setLevel(logging.ERROR)
+
+
+@contextlib.contextmanager
+def suppress_stderr():
+    """Suppresses C-level and Python-level stderr warnings from third-party SDKs."""
+    try:
+        null_fd = os.open(os.devnull, os.O_RDWR)
+        save_fd = os.dup(2)
+        os.dup2(null_fd, 2)
+        yield
+    except Exception:
+        yield
+    finally:
+        try:
+            os.dup2(save_fd, 2)
+            os.close(null_fd)
+            os.close(save_fd)
+        except Exception:
+            pass
+
 
 from app.config import settings
 from app.services.firebase_service import firebase_service
@@ -129,8 +149,9 @@ def process_message(
         business_policies=policies_dict
     )
 
-    # 5. Generate AI Response
-    reply_text = gemini_service.generate_conversational_response(context)
+    # 5. Generate AI Response with suppressed third-party stderr warnings
+    with suppress_stderr():
+        reply_text = gemini_service.generate_conversational_response(context)
 
     # 6. Validate anti-hallucination
     validation_res = validation_service.validate_and_sanitize_response(
@@ -143,9 +164,15 @@ def process_message(
 
     final_reply = validation_res.sanitized_text or reply_text
 
+    # Show product recommendations when relevant
+    should_show_products = bool(matched_products) and any(
+        kw in user_input.lower()
+        for kw in ["shoe", "shoes", "price", "budget", "run", "sneaker", "formal", "walk", "buy", "cost", "option", "recommend", "show", "model"]
+    )
+
     return {
         "reply_text": final_reply,
-        "matched_products": [p.model_dump() for p in matched_products[:2]],
+        "matched_products": [p.model_dump() for p in matched_products[:2]] if should_show_products else [],
         "order_info": order_info
     }
 
@@ -182,13 +209,17 @@ def main():
             # Display Agent Response
             print(f"\n{BOLD}{GREEN}🤖 StrideHub AI:{RESET} {reply}")
 
-            # Display Product Cards if any matched
+            # Display Product Cards if relevant products matched
             if result.get("matched_products"):
                 print(f"\n  {CYAN}📦 Recommended Products:{RESET}")
                 for p in result["matched_products"]:
                     sizes = p.get('availableSizes') or p.get('sizes') or [5, 6, 7, 8, 9, 10, 11, 12]
                     sizes_str = ", ".join(map(str, sizes))
-                    print(f"     • {BOLD}{p.get('name')}{RESET} | {GREEN}₹{p.get('price', 0):,.0f}{RESET} {DIM}(MRP ₹{p.mrp:,.0f}){RESET} | Sizes: [{sizes_str}] | Stock: {p.get('quantity', 0)} left")
+                    p_name = p.get('name', 'Product')
+                    p_price = float(p.get('price') or p.get('salePrice') or 0.0)
+                    p_mrp = float(p.get('mrp') or p.get('mrpPrice') or p_price * 1.25)
+                    p_stock = int(p.get('quantity') or p.get('stock') or 0)
+                    print(f"     • {BOLD}{p_name}{RESET} | {GREEN}₹{p_price:,.0f}{RESET} {DIM}(MRP ₹{p_mrp:,.0f}){RESET} | Sizes: [{sizes_str}] | Stock: {p_stock} left")
 
             # Display Order Card if order was tracked
             if result.get("order_info"):
