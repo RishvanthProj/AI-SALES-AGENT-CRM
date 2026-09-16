@@ -1015,3 +1015,116 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Light Theme Variables */
+body.light-theme {
+  --bg-base: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-card: #ffffff;
+  --bg-subtle: #f1f5f9;
+  --border-subtle: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #94a3b8;
+}
+
+body.light-theme .main-navbar {
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+body.light-theme .crm-sidebar {
+  background: #ffffff;
+  border-right: 1px solid #e2e8f0;
+}
+
+body.light-theme .crm-nav-item:hover,
+body.light-theme .crm-nav-item.active {
+  background: #eff6ff;
+  color: var(--primary);
+}
+
+body.light-theme .form-input,
+body.light-theme .select-input {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+/* Clickable Interactive Cards */
+.kpi-card.clickable-kpi, .indicator-chip.clickable-chip {
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.kpi-card.clickable-kpi:hover, .indicator-chip.clickable-chip:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.15);
+}
+
+/* Order Tracking Progress UI */
+.tracking-timeline {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin: 24px 0 16px;
+}
+
+.tracking-timeline::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: 20px;
+  right: 20px;
+  height: 3px;
+  background: var(--border-subtle);
+  z-index: 1;
+}
+
+.tracking-step {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  flex: 1;
+}
+
+.tracking-step-dot {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 2px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 6px;
+  font-size: 12px;
+  font-weight: 700;
+  transition: var(--transition);
+}
+
+.tracking-step.done .tracking-step-dot {
+  background: var(--success);
+  border-color: var(--success);
+  color: white;
+}
+
+.tracking-step.active .tracking-step-dot {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  box-shadow: 0 0 0 4px var(--primary-glow);
+}
+
+.tracking-step-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.tracking-step.done .tracking-step-label,
+.tracking-step.active .tracking-step-label {
+  color: var(--text-main);
+}
+

@@ -817,6 +817,10 @@
                   <p>Real-time stock decrement on terminal & CRM orders.</p>
                 </div>
               </div>
+              <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="crmApp.loadHealth()">Run Diagnostics Check ⚡</button>
+                <button class="btn btn-primary" onclick="crmApp.triggerReseed()">Reseed Starboyz Shoe Catalog 📦</button>
+              </div>
             </div>
 
           </div>
@@ -825,19 +829,81 @@
     </main>
 
     <!-- ===================================================================== -->
-    <!-- SECTION 2: STOREFRONT VIEW (Preserved for full compatibility)          -->
+    <!-- SECTION 2: STOREFRONT VIEW (Interactive Customer Experience)          -->
     <!-- ===================================================================== -->
     <main class="content-container" id="storefront-view" style="display: none;">
-      <!-- Preserved storefront contents -->
+      <!-- Hero Banner -->
       <section class="hero-section">
         <div class="hero-content">
-          <div class="hero-pill">⚡ STARBOYZ 2026 FOOTWEAR</div>
+          <div class="hero-pill">⚡ STARBOYZ 2026 FOOTWEAR COLLECTION</div>
           <h1 class="hero-headline">Move Better.<br><span class="gradient-text">Live Better.</span></h1>
-          <p class="hero-subtext">Discover precision-engineered performance runners, lifestyle sneakers and handcrafted formals.</p>
+          <p class="hero-subtext">Discover precision-engineered performance runners, lifestyle sneakers and handcrafted formals with doorstep delivery across India.</p>
+          <div style="display: flex; gap: 12px; margin-top: 18px;">
+            <button class="btn btn-primary" onclick="crmApp.scrollToStoreSection('store-products-section')">Explore Catalog 👟</button>
+            <button class="btn btn-secondary" onclick="crmApp.switchToChat('Tell me about your best running shoes')">Chat with AI Sales Agent 💬</button>
+          </div>
         </div>
       </section>
-      <section class="products-section" style="padding: 24px;">
+
+      <!-- Category Filter Pills -->
+      <section style="padding: 16px 24px 0;" id="store-products-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+          <div>
+            <h2 style="font-size: 22px; font-weight: 800;">Featured Footwear</h2>
+            <p class="text-muted" style="font-size: 13px;">Authoritative live inventory grounded in Cloud Firestore.</p>
+          </div>
+          <div class="tab-pills-row" id="store-category-filters">
+            <button class="tab-pill active" data-store-cat="all">All Shoes</button>
+            <button class="tab-pill" data-store-cat="Running">Running</button>
+            <button class="tab-pill" data-store-cat="Casual">Casual</button>
+            <button class="tab-pill" data-store-cat="Formal">Formal</button>
+            <button class="tab-pill" data-store-cat="Walking">Walking</button>
+          </div>
+        </div>
+
         <div class="products-grid" id="store-products-grid"></div>
+      </section>
+
+      <!-- Offers & Deals Section -->
+      <section style="padding: 40px 24px 20px;" id="store-offers-section">
+        <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 6px;">Exclusive Store Deals & Promo Codes</h2>
+        <p class="text-muted" style="font-size: 13px; margin-bottom: 16px;">Apply coupon codes during chat checkout for instant discounts.</p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+          <div class="kpi-card" style="border-left: 4px solid var(--primary); justify-content: space-between;">
+            <div>
+              <strong style="font-size: 16px;">STARBOYZ10</strong>
+              <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Flat 10% OFF on all performance running shoes.</div>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="crmApp.copyCoupon('STARBOYZ10')">Copy Code</button>
+          </div>
+          <div class="kpi-card" style="border-left: 4px solid var(--success); justify-content: space-between;">
+            <div>
+              <strong style="font-size: 16px;">FIRSTPAIR</strong>
+              <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Flat ₹200 OFF on your first purchase above ₹1,000.</div>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="crmApp.copyCoupon('FIRSTPAIR')">Copy Code</button>
+          </div>
+          <div class="kpi-card" style="border-left: 4px solid var(--warning); justify-content: space-between;">
+            <div>
+              <strong style="font-size: 16px;">FREE SHIPPING</strong>
+              <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Automatic free express delivery nationwide on prepaid orders.</div>
+            </div>
+            <span class="status-badge status-converted">Active</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Track Order Section -->
+      <section style="padding: 40px 24px 60px;" id="store-track-section">
+        <div class="kpi-card" style="flex-direction: column; max-width: 640px; margin: 0 auto;">
+          <h3 style="font-size: 18px; margin-bottom: 6px;">Track Your Footwear Order</h3>
+          <p class="text-muted" style="font-size: 13px; margin-bottom: 16px;">Enter your phone number or Order ID (e.g. SB-ORD-1001) to check live shipment status.</p>
+          <form id="store-track-form" style="display: flex; gap: 10px; width: 100%;">
+            <input type="text" id="store-track-input" class="form-input" placeholder="Enter Contact Number or Order ID..." required style="flex: 1;">
+            <button type="submit" class="btn btn-primary">Track Order</button>
+          </form>
+          <div id="store-track-result" style="margin-top: 16px; width: 100%;"></div>
+        </div>
       </section>
     </main>
 
@@ -869,6 +935,271 @@
     <!-- ===================================================================== -->
     <!-- GLOBAL MODALS & DRAWERS                                               -->
     <!-- ===================================================================== -->
+
+    <!-- 1. ADD LEAD MODAL -->
+    <div class="modal-overlay" id="add-lead-modal">
+      <div class="modal-card" style="max-width: 520px;">
+        <button class="modal-close-btn" id="close-add-lead-modal">✕</button>
+        <h3>Add New Lead</h3>
+        <p class="text-muted" style="margin-bottom: 16px;">Create a new prospect lead with qualification signals.</p>
+        <form id="create-lead-form">
+          <div class="form-group">
+            <label>Customer Name *</label>
+            <input type="text" id="lead-name-input" class="form-input" required placeholder="e.g. Vignesh Kumar">
+          </div>
+          <div class="form-group">
+            <label>Contact Phone Number *</label>
+            <input type="tel" id="lead-phone-input" class="form-input" required placeholder="+919876543210">
+          </div>
+          <div class="form-group">
+            <label>Initial Funnel Stage *</label>
+            <select id="lead-stage-select" class="select-input" required>
+              <option value="enquired" selected>Enquired</option>
+              <option value="engaged">Engaged</option>
+              <option value="quoted">Quoted</option>
+              <option value="nurture">Nurture</option>
+              <option value="human_handoff">Human Handoff</option>
+              <option value="converted">Converted</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Interested Footwear / Need Summary</label>
+            <input type="text" id="lead-need-input" class="form-input" placeholder="e.g. Marathon running shoes, size 9">
+          </div>
+          <div class="form-row" style="display: flex; gap: 12px;">
+            <div class="form-group" style="flex: 1;">
+              <label>Budget Signal</label>
+              <input type="text" id="lead-budget-input" class="form-input" placeholder="e.g. Under ₹2000">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label>Timeline</label>
+              <input type="text" id="lead-timeline-input" class="form-input" placeholder="e.g. Immediate / This week">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Lead Source</label>
+            <select id="lead-source-select" class="select-input">
+              <option value="whatsapp" selected>WhatsApp</option>
+              <option value="terminal_chat">Terminal Chat</option>
+              <option value="storefront">Storefront Web</option>
+              <option value="instagram">Instagram Direct</option>
+              <option value="walk_in">Retail Store Walk-in</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button type="button" class="btn btn-secondary" onclick="crmApp.closeModal('add-lead-modal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Lead</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 2. ADD CUSTOMER MODAL -->
+    <div class="modal-overlay" id="add-customer-modal">
+      <div class="modal-card" style="max-width: 520px;">
+        <button class="modal-close-btn" id="close-add-customer-modal">✕</button>
+        <h3>Add New Customer</h3>
+        <p class="text-muted" style="margin-bottom: 16px;">Register customer profile with shipping details.</p>
+        <form id="create-customer-form">
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" id="cust-name-input" class="form-input" required placeholder="e.g. Ramesh Patel">
+          </div>
+          <div class="form-group">
+            <label>Phone Number *</label>
+            <input type="tel" id="cust-phone-input" class="form-input" required placeholder="+919845012345">
+          </div>
+          <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" id="cust-email-input" class="form-input" placeholder="ramesh@example.com">
+          </div>
+          <div class="form-group">
+            <label>Delivery Address</label>
+            <textarea id="cust-address-input" class="form-input" rows="2" placeholder="Street, Apartment / House No."></textarea>
+          </div>
+          <div class="form-row" style="display: flex; gap: 12px;">
+            <div class="form-group" style="flex: 1;">
+              <label>City</label>
+              <input type="text" id="cust-city-input" class="form-input" placeholder="Chennai">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label>State</label>
+              <input type="text" id="cust-state-input" class="form-input" placeholder="Tamil Nadu">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label>Pincode</label>
+              <input type="text" id="cust-pincode-input" class="form-input" placeholder="600001">
+            </div>
+          </div>
+          <div class="form-row" style="display: flex; gap: 12px;">
+            <div class="form-group" style="flex: 1;">
+              <label>Customer Segment</label>
+              <select id="cust-type-select" class="select-input">
+                <option value="new" selected>New Customer</option>
+                <option value="returning">Returning Customer</option>
+                <option value="high_value">VIP / High-Value</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label>Shoe Size Preference</label>
+              <select id="cust-size-select" class="select-input">
+                <option value="6">UK 6</option>
+                <option value="7">UK 7</option>
+                <option value="8">UK 8</option>
+                <option value="9" selected>UK 9</option>
+                <option value="10">UK 10</option>
+                <option value="11">UK 11</option>
+              </select>
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button type="button" class="btn btn-secondary" onclick="crmApp.closeModal('add-customer-modal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Customer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 3. ADD PRODUCT MODAL -->
+    <div class="modal-overlay" id="add-product-modal">
+      <div class="modal-card" style="max-width: 580px;">
+        <button class="modal-close-btn" id="close-add-product-modal">✕</button>
+        <h3>Add New Footwear Product</h3>
+        <p class="text-muted" style="margin-bottom: 16px;">Add a new shoe model to the authoritative catalog.</p>
+        <form id="create-product-form">
+          <div class="form-row" style="display: flex; gap: 12px;">
+            <div class="form-group" style="flex: 2;">
+              <label>Shoe Model Name *</label>
+              <input type="text" id="prod-name-input" class="form-input" required placeholder="e.g. Starboyz Nitro Boost Racer">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label>SKU *</label>
+              <input type="text" id="prod-sku-input" class="form-input" required placeholder="SB-NITRO-01">
+            </div>
+          </div>
+          <div class="form-row" style="display: flex; gap: 12px;">
+            <div class="form-group" style="flex: 1;">
+              <label>Category *</label>
+              <select id="prod-category-select" class="select-input" required>
+                <option value="Running" selected>Running</option>
+                <option value="Casual">Casual Sneaker</option>
+                <option value="Formal">Handcrafted Formal</option>
+                <option value="Walking">Comfort Walking</option>
+                <option value="Trail">Trail / Outdoor</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label>Selling Price (₹) *</label>
+              <input type="number" id="prod-price-input" class="form-input" required placeholder="1499" min="100">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label>MRP (₹) *</label>
+              <input type="number" id="prod-mrp-input" class="form-input" required placeholder="1999" min="100">
+            </div>
+          </div>
+          <div class="form-row" style="display: flex; gap: 12px;">
+            <div class="form-group" style="flex: 1;">
+              <label>Initial Stock Quantity *</label>
+              <input type="number" id="prod-qty-input" class="form-input" required value="25" min="0">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label>Primary Color</label>
+              <input type="text" id="prod-color-input" class="form-input" placeholder="e.g. Midnight Black">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Product Image URL</label>
+            <input type="url" id="prod-image-input" class="form-input" placeholder="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600" value="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600">
+          </div>
+          <div class="form-group">
+            <label>Description & Features</label>
+            <textarea id="prod-desc-input" class="form-input" rows="2" placeholder="Breathable engineered mesh upper with responsive EVA cushioning."></textarea>
+          </div>
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button type="button" class="btn btn-secondary" onclick="crmApp.closeModal('add-product-modal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add Shoe to Catalog</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 4. CREATE MANUAL ORDER MODAL -->
+    <div class="modal-overlay" id="create-order-modal">
+      <div class="modal-card" style="max-width: 540px;">
+        <button class="modal-close-btn" id="close-create-order-modal">✕</button>
+        <h3>Create Manual Order</h3>
+        <p class="text-muted" style="margin-bottom: 16px;">Place manual order with automatic real-time inventory decrement.</p>
+        <form id="create-order-form">
+          <div class="form-row" style="display: flex; gap: 12px;">
+            <div class="form-group" style="flex: 1;">
+              <label>Customer Name *</label>
+              <input type="text" id="order-cust-name" class="form-input" required placeholder="e.g. Priya Sharma">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label>Phone Number *</label>
+              <input type="tel" id="order-cust-phone" class="form-input" required placeholder="+919876543210">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Delivery Address *</label>
+            <input type="text" id="order-address" class="form-input" required placeholder="Flat 402, Indiranagar 100ft Rd, Bengaluru - 560038">
+          </div>
+          <div class="form-group">
+            <label>Select Footwear Item *</label>
+            <select id="order-product-select" class="select-input" required></select>
+          </div>
+          <div class="form-row" style="display: flex; gap: 12px;">
+            <div class="form-group" style="flex: 1;">
+              <label>UK Shoe Size *</label>
+              <select id="order-size-select" class="select-input" required>
+                <option value="6">UK 6</option>
+                <option value="7">UK 7</option>
+                <option value="8">UK 8</option>
+                <option value="9" selected>UK 9</option>
+                <option value="10">UK 10</option>
+                <option value="11">UK 11</option>
+                <option value="12">UK 12</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label>Quantity *</label>
+              <input type="number" id="order-qty" class="form-input" value="1" min="1" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label>Payment Method</label>
+              <select id="order-payment-method" class="select-input">
+                <option value="Cash on Delivery" selected>Cash on Delivery (COD)</option>
+                <option value="UPI (GPay/PhonePe)">UPI / QR Payment</option>
+                <option value="Credit/Debit Card">Credit/Debit Card</option>
+                <option value="Net Banking">Net Banking</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row" style="display: flex; gap: 12px;">
+            <div class="form-group" style="flex: 1;">
+              <label>Payment Status</label>
+              <select id="order-payment-status" class="select-input">
+                <option value="pending" selected>Pending</option>
+                <option value="paid">Paid</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label>Courier Partner</label>
+              <select id="order-courier" class="select-input">
+                <option value="BlueDart Express" selected>BlueDart Express</option>
+                <option value="Delhivery">Delhivery</option>
+                <option value="DTDC Express">DTDC Express</option>
+                <option value="India Post">India Post Speed Post</option>
+              </select>
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button type="button" class="btn btn-secondary" onclick="crmApp.closeModal('create-order-modal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Confirm & Create Order</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <!-- LEAD 360 DETAIL MODAL -->
     <div class="modal-overlay" id="lead-modal">

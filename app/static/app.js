@@ -47,6 +47,12 @@ const crmApi = {
     const query = new URLSearchParams(params).toString();
     return this.request(`/leads?${query}`);
   },
+  createLead(lead) {
+    return this.request('/leads', {
+      method: 'POST',
+      body: JSON.stringify(lead)
+    });
+  },
   getLead360(leadId) {
     return this.request(`/leads/${encodeURIComponent(leadId)}`);
   },
@@ -71,8 +77,20 @@ const crmApi = {
     const query = new URLSearchParams(params).toString();
     return this.request(`/customers?${query}`);
   },
+  createCustomer(customer) {
+    return this.request('/customers', {
+      method: 'POST',
+      body: JSON.stringify(customer)
+    });
+  },
   getCustomer360(customerId) {
     return this.request(`/customers/${encodeURIComponent(customerId)}`);
+  },
+  updateCustomer(customerId, customer) {
+    return this.request(`/customers/${encodeURIComponent(customerId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(customer)
+    });
   },
 
   // Conversations & Transcripts
@@ -94,6 +112,12 @@ const crmApi = {
   saveProduct(product) {
     return this.request('/products', {
       method: 'POST',
+      body: JSON.stringify(product)
+    });
+  },
+  updateProduct(productId, product) {
+    return this.request(`/products/${encodeURIComponent(productId)}`, {
+      method: 'PUT',
       body: JSON.stringify(product)
     });
   },
@@ -121,6 +145,12 @@ const crmApi = {
   getOrders(params = {}) {
     const query = new URLSearchParams(params).toString();
     return this.request(`/orders?${query}`);
+  },
+  createOrder(order) {
+    return this.request('/orders', {
+      method: 'POST',
+      body: JSON.stringify(order)
+    });
   },
   getOrderDetail(orderId) {
     return this.request(`/orders/${encodeURIComponent(orderId)}`);
@@ -219,12 +249,19 @@ class CrmApplication {
     this.selectedLeads = new Set();
     this.pollingInterval = null;
     this.catalogProducts = [];
+    this.storeCategory = 'all';
   }
 
   init() {
+    this.loadThemePreference();
+    this.bindHeaderControls();
     this.bindNavigation();
+    this.bindDashboardKpis();
     this.bindModals();
     this.bindForms();
+    this.bindExports();
+    this.bindTaskTabs();
+    this.bindStorefront();
     this.bindSearch();
     this.bindModeSwitcher();
     this.startBackgroundSync();
@@ -242,7 +279,88 @@ class CrmApplication {
     }, 3200);
   }
 
-  // Navigation Handlers
+  // Theme Management
+  loadThemePreference() {
+    const saved = localStorage.getItem('starboyz_theme');
+    if (saved === 'light') {
+      document.body.classList.remove('dark-theme');
+      document.body.classList.add('light-theme');
+      const btn = document.getElementById('theme-toggle-btn');
+      if (btn) btn.textContent = '☀️';
+    }
+  }
+
+  toggleTheme() {
+    const isLight = document.body.classList.toggle('light-theme');
+    document.body.classList.toggle('dark-theme', !isLight);
+    localStorage.setItem('starboyz_theme', isLight ? 'light' : 'dark');
+    const btn = document.getElementById('theme-toggle-btn');
+    if (btn) btn.textContent = isLight ? '☀️' : '🌙';
+    this.showToast(`Switched to ${isLight ? 'Light' : 'Dark'} theme`, 'info');
+  }
+
+  // Header & Brand Controls
+  bindHeaderControls() {
+    // Brand Logo click -> Home / Dashboard
+    document.getElementById('logo-home-btn')?.addEventListener('click', () => {
+      this.switchView('dashboard');
+    });
+
+    // Theme Toggle button
+    document.getElementById('theme-toggle-btn')?.addEventListener('click', () => {
+      this.toggleTheme();
+    });
+
+    // Storefront center nav links
+    document.querySelectorAll('#store-nav-links .nav-link').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#store-nav-links .nav-link').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const target = btn.getAttribute('data-target');
+        this.handleStorefrontNav(target);
+      });
+    });
+  }
+
+  handleStorefrontNav(target) {
+    if (target === 'home') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (target === 'shop' || target === 'categories') {
+      this.scrollToStoreSection('store-products-section');
+    } else if (target === 'offers') {
+      this.scrollToStoreSection('store-offers-section');
+    } else if (target === 'track') {
+      this.scrollToStoreSection('store-track-section');
+    }
+  }
+
+  scrollToStoreSection(sectionId) {
+    const el = document.getElementById(sectionId);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  switchToChat(initialMessage = '') {
+    const chatBtn = document.getElementById('mode-chat-btn');
+    chatBtn?.click();
+    if (initialMessage) {
+      setTimeout(() => {
+        const input = document.getElementById('chat-input');
+        if (input) {
+          input.value = initialMessage;
+          document.getElementById('chat-send-btn')?.click();
+        }
+      }, 200);
+    }
+  }
+
+  copyCoupon(code) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(code);
+    }
+    this.showToast(`Coupon '${code}' copied to clipboard!`, 'success');
+  }
+
+  // Sidebar & View Navigation Handlers
   bindNavigation() {
     document.querySelectorAll('.crm-nav-item').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -268,14 +386,16 @@ class CrmApplication {
     const crmView = document.getElementById('crm-view');
     const storeView = document.getElementById('storefront-view');
     const chatView = document.getElementById('chat-view');
+    const storeNavLinks = document.getElementById('store-nav-links');
 
     crmBtn?.addEventListener('click', () => {
       crmBtn.classList.add('active');
       storeBtn?.classList.remove('active');
       chatBtn?.classList.remove('active');
-      crmView.style.display = 'block';
+      if (crmView) crmView.style.display = 'block';
       if (storeView) storeView.style.display = 'none';
       if (chatView) chatView.style.display = 'none';
+      if (storeNavLinks) storeNavLinks.style.display = 'none';
       this.refreshCurrentView();
     });
 
@@ -286,6 +406,7 @@ class CrmApplication {
       if (crmView) crmView.style.display = 'none';
       if (storeView) storeView.style.display = 'block';
       if (chatView) chatView.style.display = 'none';
+      if (storeNavLinks) storeNavLinks.style.display = 'flex';
       this.loadStorefrontProducts();
     });
 
@@ -296,8 +417,80 @@ class CrmApplication {
       if (crmView) crmView.style.display = 'none';
       if (storeView) storeView.style.display = 'none';
       if (chatView) chatView.style.display = 'block';
+      if (storeNavLinks) storeNavLinks.style.display = 'none';
       this.initLiveChat();
     });
+  }
+
+  // Make Dashboard KPIs Clickable for Instant Filtered Views
+  bindDashboardKpis() {
+    document.querySelectorAll('.kpi-card[data-metric]').forEach(card => {
+      card.classList.add('clickable-kpi');
+      card.addEventListener('click', () => {
+        const metric = card.getAttribute('data-metric');
+        switch (metric) {
+          case 'leads':
+            this.switchView('leads');
+            break;
+          case 'qualified':
+            this.switchView('leads', { min_score: 70 });
+            break;
+          case 'conversations':
+            this.switchView('inbox');
+            break;
+          case 'orders':
+            this.switchView('orders');
+            break;
+          case 'revenue':
+            this.switchView('orders', { status: 'delivered' });
+            break;
+          case 'conversion':
+            this.switchView('analytics');
+            break;
+          case 'aov':
+            this.switchView('customers');
+            break;
+          case 'handoff':
+            this.switchView('leads', { stage: 'human_handoff' });
+            break;
+        }
+      });
+    });
+
+    // Secondary Indicator Chips
+    document.querySelectorAll('.secondary-indicators-bar .sec-chip').forEach((chip, index) => {
+      chip.classList.add('clickable-chip');
+      chip.addEventListener('click', () => {
+        switch (index) {
+          case 0: // Nurture Leads
+            this.switchView('leads', { stage: 'nurture' });
+            break;
+          case 1: // Pending Delivery
+            this.switchView('orders', { status: 'pending' });
+            break;
+          case 2: // Low Stock SKUs
+            this.switchView('inventory');
+            break;
+          case 3: // Out of Stock
+            this.switchView('products', { stock_status: 'out_of_stock' });
+            break;
+          case 4: // Follow-ups Due
+            this.switchView('tasks', { filterView: 'today' });
+            break;
+        }
+      });
+    });
+  }
+
+  async triggerReseed() {
+    if (!confirm('This will refresh and reseed the Starboyz Footwear catalog with authoritative shoes. Continue?')) return;
+    try {
+      await crmApi.reseed();
+      this.showToast('Catalog & CRM data successfully reseeded!', 'success');
+      this.refreshCurrentView();
+    } catch (err) {
+      this.showToast('Failed to reseed catalog', 'danger');
+    }
   }
 
   switchView(viewName, params = {}) {
@@ -528,7 +721,7 @@ class CrmApplication {
             <div class="conv-preview">${this.escapeHtml(c.last_message || 'Start of conversation')}</div>
             <div style="display: flex; gap: 6px; margin-top: 6px;">
               <span class="status-badge status-${c.stage}">${c.stage}</span>
-              <span class="score-pill score-${c.score >= 70 ? 'high' : c.score >= 40 ? 'mid' : 'low'}">${c.score:.0f} pts</span>
+              <span class="score-pill score-${c.score >= 70 ? 'high' : c.score >= 40 ? 'mid' : 'low'}">${Math.round(c.score || 0)} pts</span>
               ${isHandoff ? '<span class="status-badge status-human_handoff">⚠️ Handoff</span>' : ''}
             </div>
           </div>
@@ -603,7 +796,7 @@ class CrmApplication {
           <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Lead Stage & Score</div>
           <div style="display: flex; gap: 6px; margin-top: 4px;">
             <span class="status-badge status-${lead.stage || 'enquired'}">${lead.stage || 'Enquired'}</span>
-            <span class="score-pill score-${(lead.qualification_score || 0) >= 70 ? 'high' : 'mid'}">${lead.qualification_score || 0} / 100</span>
+            <span class="score-pill score-${(lead.qualification_score || 0) >= 70 ? 'high' : 'mid'}">${Math.round(lead.qualification_score || 0)} / 100</span>
           </div>
         </div>
         <div style="margin-bottom: 12px;">
@@ -632,7 +825,7 @@ class CrmApplication {
   async loadLeads(params = {}) {
     try {
       const stageFilter = document.getElementById('leads-stage-filter')?.value || params.stage || 'all';
-      const scoreFilter = document.getElementById('leads-score-filter')?.value || '0';
+      const scoreFilter = document.getElementById('leads-score-filter')?.value || params.min_score || '0';
       const search = document.getElementById('leads-search-input')?.value || params.search || '';
 
       const queryParams = { stage: stageFilter, search };
@@ -659,7 +852,7 @@ class CrmApplication {
             <td><strong>${this.escapeHtml(l.name || 'Customer')}</strong></td>
             <td><code>${this.escapeHtml(l.contact_number)}</code></td>
             <td><span class="status-badge status-${l.stage}">${l.stage}</span></td>
-            <td><span class="score-pill score-${scoreClass}">${score:.0f} pts</span></td>
+            <td><span class="score-pill score-${scoreClass}">${Math.round(score || 0)} pts</span></td>
             <td>${this.escapeHtml(l.budget_signal || '--')}</td>
             <td>${this.escapeHtml(l.timeline_signal || '--')}</td>
             <td><span style="font-size: 12px;">${this.escapeHtml(shoesStr)}</span></td>
@@ -795,7 +988,7 @@ class CrmApplication {
       <div class="kanban-card" onclick="crmApp.openLeadDetailModal('${card.lead_id}')">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
           <strong style="font-size: 13px;">${this.escapeHtml(card.name || 'Customer')}</strong>
-          <span class="score-pill score-${scoreClass}">${score:.0f}</span>
+          <span class="score-pill score-${scoreClass}">${Math.round(score || 0)}</span>
         </div>
         <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 6px;">${this.escapeHtml(card.contact_number)}</div>
         <div style="font-size: 12px; color: var(--primary); font-weight: 600; margin-bottom: 8px;">${this.escapeHtml(shoeName)}</div>
@@ -811,7 +1004,7 @@ class CrmApplication {
   async loadProducts(params = {}) {
     try {
       const category = document.getElementById('products-category-filter')?.value || 'all';
-      const stockStatus = document.getElementById('products-stock-filter')?.value || 'all';
+      const stockStatus = document.getElementById('products-stock-filter')?.value || params.stock_status || 'all';
       const search = document.getElementById('products-search-input')?.value || '';
 
       const products = await crmApi.getProducts({ category, stock_status: stockStatus, search });
@@ -929,7 +1122,7 @@ class CrmApplication {
   // 9. Orders & Fulfillment
   async loadOrders(params = {}) {
     try {
-      const statusFilter = document.getElementById('orders-status-filter')?.value || 'all';
+      const statusFilter = document.getElementById('orders-status-filter')?.value || params.status || 'all';
       const search = document.getElementById('orders-search-input')?.value || '';
 
       const orders = await crmApi.getOrders({ status: statusFilter, search });
@@ -1029,6 +1222,17 @@ class CrmApplication {
   }
 
   // 11. Tasks & Follow-ups
+  bindTaskTabs() {
+    document.querySelectorAll('[data-task-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-task-tab]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.getAttribute('data-task-tab');
+        this.loadTasks(tab);
+      });
+    });
+  }
+
   async loadTasks(filterView = 'all') {
     try {
       const tasks = await crmApi.getTasks(filterView);
@@ -1043,7 +1247,7 @@ class CrmApplication {
       container.innerHTML = tasks.map(t => {
         const isDone = t.status === 'completed';
         return `
-          <div class="kpi-card" style="align-items: center; justify-content: space-between;">
+          <div class="kpi-card" style="align-items: center; justify-content: space-between; margin-bottom: 10px;">
             <div style="display: flex; align-items: center; gap: 12px;">
               <input type="checkbox" ${isDone ? 'checked' : ''} onchange="crmApp.toggleTaskComplete('${t.task_id}', this.checked)">
               <div>
@@ -1094,7 +1298,7 @@ class CrmApplication {
       if (!container) return;
 
       container.innerHTML = tags.map(t => `
-        <div class="kpi-card" style="align-items: center; justify-content: space-between; border-left: 4px solid ${t.color};">
+        <div class="kpi-card" style="align-items: center; justify-content: space-between; border-left: 4px solid ${t.color}; margin-bottom: 8px;">
           <div>
             <strong>${this.escapeHtml(t.name)}</strong>
             <div style="font-size: 11px; color: var(--text-dim);">${t.category}</div>
@@ -1177,7 +1381,7 @@ class CrmApplication {
   async loadHealth() {
     try {
       const h = await crmApi.getHealth();
-      console.log('Health:', h);
+      console.log('Health Diagnostics:', h);
     } catch (err) {
       console.error('Failed loading health:', err);
     }
@@ -1193,22 +1397,42 @@ class CrmApplication {
       });
     });
 
+    // Add Lead Button
     document.getElementById('open-add-lead-btn')?.addEventListener('click', () => {
-      this.showToast('Type a message in terminal_chat.py to automatically create a grounded lead!', 'info');
+      this.openModal('add-lead-modal');
     });
 
+    // Add Customer Button
+    document.getElementById('open-add-customer-btn')?.addEventListener('click', () => {
+      this.openModal('add-customer-modal');
+    });
+
+    // Add Product Button
+    document.getElementById('open-add-product-btn')?.addEventListener('click', () => {
+      this.openModal('add-product-modal');
+    });
+
+    // Create Order Button
+    document.getElementById('open-create-order-btn')?.addEventListener('click', () => {
+      this.openCreateOrderModal();
+    });
+
+    // Adjust Stock Modal Trigger
     document.getElementById('open-adjust-stock-modal-btn')?.addEventListener('click', () => {
       this.openAdjustStockModal();
     });
 
+    // Create Quote Modal Trigger
     document.getElementById('open-create-quote-btn')?.addEventListener('click', () => {
       this.openCreateQuoteModal();
     });
 
+    // Create Task Modal Trigger
     document.getElementById('open-create-task-btn')?.addEventListener('click', () => {
       this.openModal('task-modal');
     });
 
+    // Create Tag Modal Trigger
     document.getElementById('open-create-tag-btn')?.addEventListener('click', () => {
       this.openModal('tag-modal');
     });
@@ -1251,7 +1475,7 @@ class CrmApplication {
               <option value="human_handoff" ${lead.stage === 'human_handoff' ? 'selected' : ''}>Human Handoff</option>
               <option value="converted" ${lead.stage === 'converted' ? 'selected' : ''}>Converted</option>
             </select>
-            <span class="score-pill score-${score >= 70 ? 'high' : 'mid'}" style="font-size: 14px; padding: 4px 12px;">${score:.0f} / 100</span>
+            <span class="score-pill score-${score >= 70 ? 'high' : 'mid'}" style="font-size: 14px; padding: 4px 12px;">${Math.round(score || 0)} / 100</span>
           </div>
         </div>
 
@@ -1360,7 +1584,7 @@ class CrmApplication {
       content.innerHTML = `
         <div style="display: flex; gap: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 16px; margin-bottom: 20px;">
           <img src="${prod.imageUrl || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200'}" style="width: 100px; height: 100px; border-radius: 8px; object-fit: cover;">
-          <div>
+          <div style="flex: 1;">
             <h2 style="font-size: 20px;">${this.escapeHtml(prod.name)}</h2>
             <div style="color: var(--text-muted); font-size: 13px;">SKU: <strong>${prod.sku}</strong> &bull; Category: <strong>${prod.category}</strong></div>
             <div style="margin-top: 8px; font-size: 18px; font-weight: 800; color: var(--primary);">
@@ -1373,8 +1597,9 @@ class CrmApplication {
           <div class="kpi-card"><div><span class="kpi-label">Revenue</span><div class="kpi-value">₹${(sales.revenue || 0).toLocaleString('en-IN')}</div></div></div>
           <div class="kpi-card"><div><span class="kpi-label">Current Stock</span><div class="kpi-value">${prod.quantity || 0}</div></div></div>
         </div>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">${this.escapeHtml(prod.description || '')}</p>
         <h4>Recent Inventory Movements</h4>
-        <div style="background: var(--bg-surface); padding: 12px; border-radius: 8px; margin-top: 8px; max-height: 180px; overflow-y: auto;">
+        <div style="background: var(--bg-surface); padding: 12px; border-radius: 8px; margin-top: 8px; max-height: 140px; overflow-y: auto;">
           ${movements.map(m => `
             <div style="font-size: 12px; margin-bottom: 6px; display: flex; justify-content: space-between;">
               <span>${m.reason} (${m.quantity_change > 0 ? '+' : ''}${m.quantity_change})</span>
@@ -1382,11 +1607,38 @@ class CrmApplication {
             </div>
           `).join('')}
         </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+          <button class="btn btn-secondary" onclick="crmApp.openAdjustStockModal('${prod.id}', '${escape(prod.name)}')">⚡ Adjust Stock</button>
+          <button class="btn btn-secondary" onclick="crmApp.duplicateProduct('${prod.id}')">Clone</button>
+          <button class="btn btn-danger" onclick="crmApp.deleteProduct('${prod.id}')">Delete</button>
+        </div>
       `;
 
       this.openModal('product-modal');
     } catch (err) {
       console.error('Failed opening product modal:', err);
+    }
+  }
+
+  async duplicateProduct(productId) {
+    try {
+      await crmApi.duplicateProduct(productId);
+      this.showToast('Shoe duplicated successfully!', 'success');
+      this.loadProducts();
+    } catch (err) {
+      this.showToast('Failed to duplicate shoe', 'danger');
+    }
+  }
+
+  async deleteProduct(productId) {
+    if (!confirm('Are you sure you want to delete this shoe product?')) return;
+    try {
+      await crmApi.deleteProduct(productId);
+      this.showToast('Shoe deleted from catalog', 'info');
+      this.closeModal('product-modal');
+      this.loadProducts();
+    } catch (err) {
+      this.showToast('Failed to delete shoe', 'danger');
     }
   }
 
@@ -1419,11 +1671,178 @@ class CrmApplication {
     this.openModal('quote-modal');
   }
 
+  async openCreateOrderModal(productId = '') {
+    const prodSelect = document.getElementById('order-product-select');
+    if (prodSelect) {
+      const products = await crmApi.getProducts();
+      prodSelect.innerHTML = products.map(p => `
+        <option value="${p.id}" data-price="${p.price}" ${p.id === productId ? 'selected' : ''}>${p.name} (₹${p.price})</option>
+      `).join('');
+    }
+    this.openModal('create-order-modal');
+  }
+
   // ===========================================================================
   // 5. Forms Binding
   // ===========================================================================
   bindForms() {
-    // Adjust Stock Form
+    // 1. Add Lead Form
+    document.getElementById('create-lead-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('lead-name-input')?.value;
+      const phone = document.getElementById('lead-phone-input')?.value;
+      const stage = document.getElementById('lead-stage-select')?.value;
+      const need = document.getElementById('lead-need-input')?.value;
+      const budget = document.getElementById('lead-budget-input')?.value;
+      const timeline = document.getElementById('lead-timeline-input')?.value;
+      const source = document.getElementById('lead-source-select')?.value;
+
+      try {
+        await crmApi.createLead({
+          lead_id: phone,
+          businessId: 'stridehub-shoes',
+          name,
+          contact_number: phone,
+          stage,
+          need_summary: need,
+          budget_signal: budget,
+          timeline_signal: timeline,
+          source,
+          qualification_score: 65.0
+        });
+        this.showToast('Lead created successfully!', 'success');
+        this.closeModal('add-lead-modal');
+        this.loadLeads();
+      } catch (err) {
+        this.showToast('Failed creating lead: ' + err.message, 'danger');
+      }
+    });
+
+    // 2. Add Customer Form
+    document.getElementById('create-customer-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('cust-name-input')?.value;
+      const phone = document.getElementById('cust-phone-input')?.value;
+      const email = document.getElementById('cust-email-input')?.value;
+      const address = document.getElementById('cust-address-input')?.value;
+      const city = document.getElementById('cust-city-input')?.value;
+      const state = document.getElementById('cust-state-input')?.value;
+      const pincode = document.getElementById('cust-pincode-input')?.value;
+      const custType = document.getElementById('cust-type-select')?.value;
+      const sizePref = document.getElementById('cust-size-select')?.value;
+
+      try {
+        await crmApi.createCustomer({
+          id: phone,
+          businessId: 'stridehub-shoes',
+          name,
+          phone_number: phone,
+          email,
+          address,
+          city,
+          state,
+          pincode,
+          customer_type: custType,
+          shoe_size_preference: sizePref
+        });
+        this.showToast('Customer profile registered!', 'success');
+        this.closeModal('add-customer-modal');
+        this.loadCustomers();
+      } catch (err) {
+        this.showToast('Failed saving customer: ' + err.message, 'danger');
+      }
+    });
+
+    // 3. Add Product Form
+    document.getElementById('create-product-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('prod-name-input')?.value;
+      const sku = document.getElementById('prod-sku-input')?.value;
+      const category = document.getElementById('prod-category-select')?.value;
+      const price = parseFloat(document.getElementById('prod-price-input')?.value || '1499');
+      const mrp = parseFloat(document.getElementById('prod-mrp-input')?.value || '1999');
+      const qty = parseInt(document.getElementById('prod-qty-input')?.value || '25', 10);
+      const color = document.getElementById('prod-color-input')?.value || 'Black';
+      const image = document.getElementById('prod-image-input')?.value;
+      const desc = document.getElementById('prod-desc-input')?.value;
+
+      try {
+        await crmApi.saveProduct({
+          id: `prod_${sku.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+          businessId: 'stridehub-shoes',
+          name,
+          sku,
+          category,
+          price,
+          mrp,
+          quantity: qty,
+          primaryColor: color,
+          imageUrl: image,
+          description: desc,
+          stockStatus: qty > 5 ? 'in_stock' : qty > 0 ? 'low_stock' : 'out_of_stock'
+        });
+        this.showToast('Footwear product added to catalog!', 'success');
+        this.closeModal('add-product-modal');
+        this.loadProducts();
+      } catch (err) {
+        this.showToast('Failed adding product: ' + err.message, 'danger');
+      }
+    });
+
+    // 4. Create Manual Order Form
+    document.getElementById('create-order-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const custName = document.getElementById('order-cust-name')?.value;
+      const custPhone = document.getElementById('order-cust-phone')?.value;
+      const address = document.getElementById('order-address')?.value;
+      const prodSelect = document.getElementById('order-product-select');
+      const prodId = prodSelect?.value;
+      const prodName = prodSelect?.options[prodSelect.selectedIndex]?.text.split('(')[0].trim();
+      const price = parseFloat(prodSelect?.options[prodSelect.selectedIndex]?.getAttribute('data-price') || '1499');
+      const size = document.getElementById('order-size-select')?.value;
+      const qty = parseInt(document.getElementById('order-qty')?.value, 10);
+      const paymentMethod = document.getElementById('order-payment-method')?.value;
+      const paymentStatus = document.getElementById('order-payment-status')?.value;
+      const courier = document.getElementById('order-courier')?.value;
+
+      const totalAmount = price * qty;
+      const orderId = `SB-ORD-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      try {
+        await crmApi.createOrder({
+          order_id: orderId,
+          businessId: 'stridehub-shoes',
+          customer_id: custPhone,
+          customer_name: custName,
+          contact_number: custPhone,
+          delivery_address: address,
+          product_id: prodId,
+          product_name: prodName,
+          quantity: qty,
+          amount: totalAmount,
+          payment_method: paymentMethod,
+          payment_status: paymentStatus,
+          status: 'confirmed',
+          courier_partner: courier,
+          tracking_id: `TRK${Math.floor(100000 + Math.random() * 900000)}IN`,
+          items: [{
+            product_id: prodId,
+            product_name: prodName,
+            size: size,
+            quantity: qty,
+            unit_price: price,
+            total_price: totalAmount
+          }]
+        });
+        this.showToast(`Order #${orderId} confirmed & stock decremented!`, 'success');
+        this.closeModal('create-order-modal');
+        this.loadOrders();
+      } catch (err) {
+        this.showToast('Failed creating order: ' + err.message, 'danger');
+      }
+    });
+
+    // 5. Adjust Stock Form
     document.getElementById('adjust-stock-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const productId = document.getElementById('adj-product-select')?.value;
@@ -1446,7 +1865,7 @@ class CrmApplication {
       }
     });
 
-    // Create Quote Form
+    // 6. Create Quote Form
     document.getElementById('create-quote-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const custName = document.getElementById('quote-cust-name')?.value;
@@ -1482,7 +1901,7 @@ class CrmApplication {
       }
     });
 
-    // Create Task Form
+    // 7. Create Task Form
     document.getElementById('create-task-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const title = document.getElementById('task-title-input')?.value;
@@ -1508,7 +1927,7 @@ class CrmApplication {
       }
     });
 
-    // Create Tag Form
+    // 8. Create Tag Form
     document.getElementById('create-tag-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = document.getElementById('tag-name-input')?.value;
@@ -1524,7 +1943,7 @@ class CrmApplication {
       }
     });
 
-    // Settings Profile Form
+    // 9. Settings Profile Form
     document.getElementById('settings-profile-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = document.getElementById('set-store-name')?.value;
@@ -1550,7 +1969,7 @@ class CrmApplication {
       }
     });
 
-    // Filter Listeners
+    // Filter Change Listeners
     document.getElementById('leads-stage-filter')?.addEventListener('change', () => this.loadLeads());
     document.getElementById('leads-score-filter')?.addEventListener('change', () => this.loadLeads());
     document.getElementById('leads-search-input')?.addEventListener('input', () => this.loadLeads());
@@ -1564,10 +1983,305 @@ class CrmApplication {
 
     document.getElementById('orders-status-filter')?.addEventListener('change', () => this.loadOrders());
     document.getElementById('orders-search-input')?.addEventListener('input', () => this.loadOrders());
+
+    document.getElementById('movements-search-input')?.addEventListener('input', () => this.loadMovements());
   }
 
   // ===========================================================================
-  // 6. Global Search & Hotkeys
+  // 6. CSV Exporters
+  // ===========================================================================
+  bindExports() {
+    document.getElementById('export-leads-csv-btn')?.addEventListener('click', () => this.exportLeadsCsv());
+    document.getElementById('export-customers-csv-btn')?.addEventListener('click', () => this.exportCustomersCsv());
+    document.getElementById('export-movements-csv-btn')?.addEventListener('click', () => this.exportMovementsCsv());
+    document.getElementById('export-orders-csv-btn')?.addEventListener('click', () => this.exportOrdersCsv());
+  }
+
+  async exportLeadsCsv() {
+    try {
+      const leads = await crmApi.getLeads();
+      const headers = ['Lead ID', 'Name', 'Phone', 'Stage', 'Score', 'Budget', 'Timeline', 'Interested Shoes', 'Source', 'Updated At'];
+      const rows = leads.map(l => [
+        l.lead_id,
+        l.name || '',
+        l.contact_number,
+        l.stage,
+        l.qualification_score || 0,
+        l.budget_signal || '',
+        l.timeline_signal || '',
+        (l.interested_product_names || []).join('; '),
+        l.source || '',
+        l.updated_at || l.created_at || ''
+      ]);
+      this.downloadCsv('starboyz_leads_export.csv', headers, rows);
+      this.showToast(`Exported ${leads.length} leads to CSV`, 'success');
+    } catch (err) {
+      this.showToast('Export failed', 'danger');
+    }
+  }
+
+  async exportCustomersCsv() {
+    try {
+      const customers = await crmApi.getCustomers();
+      const headers = ['Customer ID', 'Name', 'Phone', 'Email', 'City', 'State', 'Type', 'Total Orders', 'Total Spent', 'AOV'];
+      const rows = customers.map(c => [
+        c.id,
+        c.name || '',
+        c.phone_number,
+        c.email || '',
+        c.city || '',
+        c.state || '',
+        c.customer_type || '',
+        c.total_orders || 0,
+        c.total_spent || 0,
+        c.average_order_value || 0
+      ]);
+      this.downloadCsv('starboyz_customers_export.csv', headers, rows);
+      this.showToast(`Exported ${customers.length} customers to CSV`, 'success');
+    } catch (err) {
+      this.showToast('Export failed', 'danger');
+    }
+  }
+
+  async exportMovementsCsv() {
+    try {
+      const movements = await crmApi.getStockMovements();
+      const headers = ['Movement ID', 'Timestamp', 'Product Name', 'Change', 'Previous Qty', 'New Qty', 'Reason', 'Reference', 'Performed By'];
+      const rows = movements.map(m => [
+        m.movement_id,
+        m.created_at || '',
+        m.product_name,
+        m.quantity_change,
+        m.previous_quantity,
+        m.new_quantity,
+        m.reason,
+        m.reference_id || '',
+        m.performed_by || ''
+      ]);
+      this.downloadCsv('starboyz_stock_movements_audit.csv', headers, rows);
+      this.showToast(`Exported ${movements.length} audit records to CSV`, 'success');
+    } catch (err) {
+      this.showToast('Export failed', 'danger');
+    }
+  }
+
+  async exportOrdersCsv() {
+    try {
+      const orders = await crmApi.getOrders();
+      const headers = ['Order ID', 'Customer Name', 'Phone', 'Product', 'Quantity', 'Amount (INR)', 'Payment Method', 'Payment Status', 'Status', 'Courier', 'Tracking ID', 'Date'];
+      const rows = orders.map(o => [
+        o.order_id,
+        o.customer_name,
+        o.contact_number,
+        o.product_name || '',
+        o.quantity,
+        o.amount,
+        o.payment_method,
+        o.payment_status,
+        o.status,
+        o.courier_partner || '',
+        o.tracking_id || '',
+        o.order_date || ''
+      ]);
+      this.downloadCsv('starboyz_orders_export.csv', headers, rows);
+      this.showToast(`Exported ${orders.length} orders to CSV`, 'success');
+    } catch (err) {
+      this.showToast('Export failed', 'danger');
+    }
+  }
+
+  downloadCsv(filename, headers, rows) {
+    const csvContent = [
+      headers.map(h => `"${String(h).replace(/"/g, '""')}"`).join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  // ===========================================================================
+  // 7. Storefront & Order Tracking
+  // ===========================================================================
+  bindStorefront() {
+    // Storefront Category Filter Pills
+    document.querySelectorAll('#store-category-filters .tab-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#store-category-filters .tab-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.storeCategory = btn.getAttribute('data-store-cat');
+        this.loadStorefrontProducts();
+      });
+    });
+
+    // Storefront Order Tracking Form
+    document.getElementById('store-track-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('store-track-input')?.value.trim();
+      const resultEl = document.getElementById('store-track-result');
+      if (!input || !resultEl) return;
+
+      resultEl.innerHTML = '<div style="padding: 12px; text-align: center;">Searching shipment database...</div>';
+
+      try {
+        const orders = await crmApi.getOrders();
+        const found = orders.find(o =>
+          o.order_id.toLowerCase() === input.toLowerCase() ||
+          o.contact_number === input ||
+          (o.tracking_id && o.tracking_id.toLowerCase() === input.toLowerCase())
+        );
+
+        if (!found) {
+          resultEl.innerHTML = `<div style="padding: 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); border-radius: 8px; color: var(--text-main);">No active order found matching '<strong>${this.escapeHtml(input)}</strong>'. Please check your Order ID or contact number.</div>`;
+          return;
+        }
+
+        const stages = ['confirmed', 'packed', 'dispatched', 'out_for_delivery', 'delivered'];
+        const stageLabels = ['Confirmed', 'Packed', 'Dispatched', 'Out for Delivery', 'Delivered'];
+        const curIdx = stages.indexOf(found.status.toLowerCase());
+
+        resultEl.innerHTML = `
+          <div style="background: var(--bg-surface); padding: 18px; border-radius: 10px; border: 1px solid var(--border-subtle);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+              <div>
+                <strong style="font-size: 16px;">Order #${found.order_id}</strong>
+                <div style="font-size: 12px; color: var(--text-muted);">${found.product_name} &bull; Qty: ${found.quantity}</div>
+              </div>
+              <span class="status-badge status-${found.status}">${found.status.toUpperCase()}</span>
+            </div>
+
+            <!-- Visual Tracking Timeline -->
+            <div class="tracking-timeline">
+              ${stages.map((s, idx) => {
+                const isDone = curIdx >= idx;
+                const isActive = curIdx === idx;
+                return `
+                  <div class="tracking-step ${isDone ? 'done' : ''} ${isActive ? 'active' : ''}">
+                    <div class="tracking-step-dot">${isDone ? '✓' : idx + 1}</div>
+                    <div class="tracking-step-label">${stageLabels[idx]}</div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+
+            <div style="margin-top: 14px; font-size: 12px; color: var(--text-muted); display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <div>Courier: <strong>${found.courier_partner || 'BlueDart'}</strong></div>
+              <div>Tracking ID: <code>${found.tracking_id || 'Pending'}</code></div>
+              <div>Delivery Address: <span>${found.delivery_address || 'India'}</span></div>
+              <div>Estimated Arrival: <strong>${found.estimated_delivery || '3-4 Business Days'}</strong></div>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        resultEl.innerHTML = '<div style="color: var(--danger);">Failed to retrieve tracking info.</div>';
+      }
+    });
+  }
+
+  async loadStorefrontProducts() {
+    const grid = document.getElementById('store-products-grid');
+    if (!grid) return;
+
+    try {
+      const products = await crmApi.getProducts();
+      const filtered = this.storeCategory === 'all'
+        ? products
+        : products.filter(p => (p.category || '').toLowerCase().includes(this.storeCategory.toLowerCase()));
+
+      if (!filtered.length) {
+        grid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;">No shoes in this category currently.</div>';
+        return;
+      }
+
+      grid.innerHTML = filtered.map(p => `
+        <div class="kpi-card" style="flex-direction: column; overflow: hidden; padding: 0; background: var(--bg-card); border-radius: 12px;">
+          <img src="${p.imageUrl}" style="width: 100%; height: 180px; object-fit: cover;">
+          <div style="padding: 16px; width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span class="status-badge">${p.category}</span>
+              <span class="status-badge status-${p.stockStatus}">${p.stockStatus.replace('_', ' ')}</span>
+            </div>
+            <h3 style="font-size: 16px; font-weight: 700;">${this.escapeHtml(p.name)}</h3>
+            <p style="color: var(--text-muted); font-size: 12px; margin: 4px 0 12px; line-height: 1.4;">${this.escapeHtml(p.description || '')}</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <div>
+                <strong style="font-size: 18px; color: var(--primary);">₹${(p.price || 0).toLocaleString('en-IN')}</strong>
+                <span style="font-size: 11px; color: var(--text-dim); text-decoration: line-through; margin-left: 4px;">₹${(p.mrp || 0).toLocaleString('en-IN')}</span>
+              </div>
+              <span style="font-size: 12px;">⭐ ${p.rating || 4.8}</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <button class="btn btn-primary btn-sm" onclick="crmApp.openCreateOrderModal('${p.id}')">Buy Now ⚡</button>
+              <button class="btn btn-secondary btn-sm" onclick="crmApp.switchToChat('Tell me about ${p.name}')">Ask AI 💬</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    } catch (err) {
+      console.error('Failed loading storefront:', err);
+    }
+  }
+
+  // ===========================================================================
+  // 8. Live WhatsApp AI Chat Simulator
+  // ===========================================================================
+  initLiveChat() {
+    const box = document.getElementById('chat-messages-box');
+    const input = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('chat-send-btn');
+
+    if (!box) return;
+    if (box.children.length === 0) {
+      box.innerHTML = `
+        <div class="chat-bubble assistant">
+          Hello there! 👋 Welcome to Starboyz Shoes. What kind of shoes are you looking for today? (Running, Casual Sneakers, Walking, Formal)
+        </div>
+      `;
+    }
+
+    const sendHandler = async () => {
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+
+      box.innerHTML += `<div class="chat-bubble user">${this.escapeHtml(text)}</div>`;
+      box.scrollTop = box.scrollHeight;
+
+      try {
+        const res = await fetch('/api/chat/message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text, history: [] })
+        });
+        const data = await res.json();
+        box.innerHTML += `<div class="chat-bubble assistant">${this.escapeHtml(data.reply_text || data.reply || 'Thank you for your message!')}</div>`;
+        box.scrollTop = box.scrollHeight;
+      } catch (err) {
+        box.innerHTML += `<div class="chat-bubble assistant">Thank you! Our AI Sales Assistant has recorded your footwear requirement.</div>`;
+        box.scrollTop = box.scrollHeight;
+      }
+    };
+
+    sendBtn?.replaceWith(sendBtn.cloneNode(true));
+    const newSendBtn = document.getElementById('chat-send-btn');
+    newSendBtn?.addEventListener('click', sendHandler);
+
+    input?.replaceWith(input.cloneNode(true));
+    const newInput = document.getElementById('chat-input');
+    newInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendHandler();
+    });
+  }
+
+  // ===========================================================================
+  // 9. Global Search & Hotkeys
   // ===========================================================================
   bindSearch() {
     const searchBtn = document.getElementById('search-modal-btn');
@@ -1651,7 +2365,7 @@ class CrmApplication {
   }
 
   // ===========================================================================
-  // 7. Interactive SVG Chart Renderers
+  // 10. Interactive SVG Charts
   // ===========================================================================
   renderSvgTrendChart(containerId, points, prefix = '') {
     const container = document.getElementById(containerId);
@@ -1758,69 +2472,7 @@ class CrmApplication {
   }
 
   // ===========================================================================
-  // 8. Storefront & Live Chat Compatibility
-  // ===========================================================================
-  async loadStorefrontProducts() {
-    const grid = document.getElementById('store-products-grid');
-    if (!grid) return;
-    const products = await crmApi.getProducts();
-    grid.innerHTML = products.map(p => `
-      <div class="kpi-card" style="flex-direction: column;">
-        <img src="${p.imageUrl}" style="width: 100%; height: 160px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;">
-        <h3>${p.name}</h3>
-        <p style="color: var(--text-muted); font-size: 12px; margin: 4px 0 12px;">${p.description}</p>
-        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-          <strong style="font-size: 16px; color: var(--primary);">₹${p.price}</strong>
-          <span class="status-badge status-${p.stockStatus}">${p.stockStatus}</span>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  initLiveChat() {
-    const box = document.getElementById('chat-messages-box');
-    const input = document.getElementById('chat-input');
-    const sendBtn = document.getElementById('chat-send-btn');
-
-    if (!box) return;
-    if (box.children.length === 0) {
-      box.innerHTML = `
-        <div class="chat-bubble assistant">
-          Hello! Welcome to Starboyz Shoes. What kind of shoes are you looking for today?
-        </div>
-      `;
-    }
-
-    const sendHandler = async () => {
-      const text = input.value.trim();
-      if (!text) return;
-      input.value = '';
-
-      box.innerHTML += `<div class="chat-bubble user">${this.escapeHtml(text)}</div>`;
-      box.scrollTop = box.scrollHeight;
-
-      try {
-        const res = await fetch('/api/chat/message', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text, history: [] })
-        });
-        const data = await res.json();
-        box.innerHTML += `<div class="chat-bubble assistant">${this.escapeHtml(data.reply_text || data.reply || 'Thank you for your message!')}</div>`;
-        box.scrollTop = box.scrollHeight;
-      } catch (err) {
-        box.innerHTML += `<div class="chat-bubble assistant">Thank you! Our AI Sales Assistant has recorded your requirement.</div>`;
-      }
-    };
-
-    sendBtn?.addEventListener('click', sendHandler);
-    input?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') sendHandler();
-    });
-  }
-
-  // ===========================================================================
-  // Utilities
+  // 11. Utilities
   // ===========================================================================
   setText(elementId, text) {
     const el = document.getElementById(elementId);

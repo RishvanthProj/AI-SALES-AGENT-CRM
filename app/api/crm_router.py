@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
@@ -242,6 +243,19 @@ async def get_customer_360(customer_id: str, business_id: str = "stridehub-shoes
     if not c360:
         raise HTTPException(status_code=404, detail=f"Customer '{customer_id}' not found.")
     return c360
+
+
+@router.post("/customers")
+async def create_customer(payload: CustomerDocument):
+    """
+    Creates a new customer profile in CRM database.
+    """
+    cust_id = payload.id or payload.phone_number or f"cust_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    payload.id = cust_id
+    if not payload.phone_number:
+        payload.phone_number = cust_id
+    firebase_service.save_customer(payload.businessId, payload)
+    return {"status": "success", "customer": payload.model_dump()}
 
 
 @router.put("/customers/{customer_id}")
