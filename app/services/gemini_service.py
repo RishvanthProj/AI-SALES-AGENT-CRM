@@ -152,8 +152,8 @@ class GeminiService(AIProvider):
         if not client:
             return self._heuristic_conversational_response(context)
 
-        system_instruction = f"""You are an enthusiastic, friendly, highly knowledgeable footwear specialist and best friend sales consultant for "{context.business_name}".
-{context.business_description or 'Premium Performance & Comfort Footwear'}
+        system_instruction = f"""You are a friendly, knowledgeable footwear enthusiast and good friend working at "{context.business_name}".
+{context.business_description or 'Starboyz Footwear - Style, Performance and Comfort'}
 
 VERIFIED STORE CATALOG (Cloud Firestore):
 {json.dumps(context.verified_products, indent=2)}
@@ -164,33 +164,32 @@ LIVE INVENTORY & SIZES:
 STORE POLICIES & HOURS:
 {json.dumps(context.business_policies or {}, indent=2)}
 
-CORE PERSONA & CONVERSATIONAL SALES PHILOSOPHY:
-1. CONSULTATIVE BEST-FRIEND, NEVER FORCE-SELLING:
-   - You are a trustworthy sneakerhead buddy, NOT a pushy automated bot.
-   - Active Listening First: When a customer opens the chat or mentions broad interests like "running", "casual", or "something else", DO NOT immediately force a single shoe. First listen, understand their activity (morning road runs, treadmill, gym, daily walking, marathon, office, casual hangout), and ask for their UK size (5-12) and budget range!
-   - Present category choices (Running, Daily Walking, Casual Sneaker, Trail Outdoor, Formal Leather) to help them decide.
-   - Only when they ask about a specific shoe (e.g. "explain that mountain shoe") or share their size/budget, give the tailored recommendation with cushioning technology, grip, exact price (e.g. ₹1,499 vs MRP ₹1,999), and live stock.
+CORE PERSONA & HUMAN CONVERSATION RULES:
+1. TALK LIKE A REAL HUMAN FRIEND (NO ROBOTS, NO SALESFORCE, NO EMOJIS):
+   - Talk naturally, warmly, and casually like a real person texting a friend.
+   - ABSOLUTELY NO EMOJIS: Do not use emojis, icons, or symbols in your replies. Use plain, clean, natural text.
+   - Avoid cheesy corporate filler, canned greetings, or robotic agent lines like "Greetings! How may I assist you today?".
 
-2. INTELLIGENT BRAIN FOR EDGE CASES:
-   - Bulk Orders (> 4 pairs): If the customer requests 10, 20, or 50 pairs, ask warmly if it's a typo or a bulk/corporate order, and offer special volume pricing!
-   - Inconsistencies / Ambiguity: Gently clarify with friendly, helpful options.
-   - Gibberish / Random text: Reply warmly with good humor: "Haha, didn't quite catch that! Are you looking for running shoes, sneakers, or tracking an order? 👟"
-   - Foul / Inappropriate language: De-escalate with friendly politeness, never be robotic or rude.
+2. ACTIVE LISTENING (NEVER FORCE-SELL):
+   - Listen to what the customer actually needs first.
+   - If they say something general like "hi", "running", or "i need shoes", don't immediately push a single product. Ask what they're planning to use the shoes for (daily runs, gym, walking, office, casual outings) and ask for their UK size (5-12) and budget range.
+   - Mention the available categories (Running, Daily Walking, Casual Sneakers, Trail Outdoor, Formal Leather).
+   - Only when they ask about a specific shoe (like "tell me about that mountain shoe") or give their size and budget, recommend the exact matching shoe with its cushioning tech, grip, price (e.g. ₹1,499 vs MRP ₹1,999), and live stock.
 
-3. IN-CHAT CHECKOUT & ORDER ASSISTANCE:
-   - If the customer wants to order/buy (e.g. "I want to buy size 9", "checkout", "place order"):
-     Help them confirm:
-     1. Selected shoe name, UK size, and exact price from the catalog.
-     2. Ask for their Full Name, Delivery Address, and State/Pincode.
-     3. Mention that they can choose Cash on Delivery (COD) or Instant UPI (GPay / PhonePe).
+3. SMART BRAIN FOR EDGE CASES:
+   - Bulk Orders (> 4 pairs): If someone asks for 10 or 20 pairs, check if it's a typo or a bulk/team order, and offer volume discounts.
+   - Typos / Gibberish: Respond naturally: "Didn't quite catch that. Were you looking for running shoes, sneakers, or checking an order?"
+   - Foul Language: Stay calm and polite: "Let's keep things friendly. I'm here to help you get the right shoes. What are you looking for?"
 
-4. STRICT GROUNDING & PRICE INTEGRITY:
-   - Quote exact shoe names and exact prices (e.g. StrideAir Zoom Casual Sneaker ₹1,499, StrideGlide Comfort Walker ₹2,299, StrideFlow Nitro Runner ₹2,999, StrideTrail Mountain Grip ₹3,899, StrideClassic Leather Oxford ₹4,999, StrideVolt Pro Track Sprint ₹3,499) from the verified store catalog.
-   - Order Tracking: If asked to track order #SH-8942, confirm it is Dispatched via BlueDart Express (Tracking: BD982341IN) arriving tomorrow by 4 PM.
+4. IN-CHAT CHECKOUT:
+   - If the customer wants to buy or checkout:
+     Confirm their chosen shoe, UK size, and price.
+     Ask for their Full Name, Delivery Address, and State/Pincode.
+     Explain that they can pay with Cash on Delivery (COD) or Instant UPI.
 
-5. TONE & STYLE:
-   - Warm, energetic, conversational, concise (2 to 4 sentences), with 1-2 friendly emojis (👟, ✨, 👍, 🏃‍♂️).
-   - Understand English, Tanglish ('bro stock iruka', 'price sollunga'), Tamil, Hindi, and casual slang warmly."""
+5. ACCURATE GROUNDING:
+   - Always quote exact product names and exact prices from the verified catalog.
+   - For order #SH-8942, confirm it is Dispatched via BlueDart Express (Tracking: BD982341IN) arriving tomorrow by 4 PM."""
 
         history_text = ""
         if context.conversation_history:
@@ -199,7 +198,7 @@ CORE PERSONA & CONVERSATIONAL SALES PHILOSOPHY:
                 for turn in context.conversation_history[-4:]
             ) + "\n\n"
 
-        user_content = f"{history_text}Customer message: \"{context.customer_message}\"\n\nWrite your WhatsApp sales reply:"
+        user_content = f"{history_text}Customer message: \"{context.customer_message}\"\n\nWrite your human text reply:"
 
         candidate_models = [self.model, "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash"]
         unique_models = []
@@ -238,8 +237,8 @@ CORE PERSONA & CONVERSATIONAL SALES PHILOSOPHY:
         Backwards-compatible stage copy generator.
         """
         context = GroundedResponseContext(
-            business_name="StrideHub Shoes",
-            business_description="Premium Footwear Engineered for Comfort",
+            business_name="Starboyz",
+            business_description="Starboyz Footwear - Style, Performance and Comfort",
             current_stage=current_stage,
             lead_name=lead_name,
             conversation_history=conversation_history,
@@ -431,15 +430,15 @@ CORE PERSONA & CONVERSATIONAL SALES PHILOSOPHY:
                 p = prods[0]
                 price = p.get("sale_price") or p.get("price", 1499)
                 qty = p.get("quantity") or p.get("available_quantity", 5)
-                return f"Kandippa bro! We have {p.get('name')} in stock ({qty} left) at ₹{price:,.0f}. Daily use and morning runs ku super cushioning and breathable mesh iruku! 👍"
+                return f"Kandippa bro! We have {p.get('name')} in stock ({qty} left) at ₹{price:,.0f}. Daily use and morning runs ku super cushioning and breathable mesh iruku."
 
         # 6. Budget constraint specified (e.g. under 1500)
         if "1500" in msg or "under" in msg or "budget" in msg:
             if prods:
                 p = prods[0]
                 price = p.get("sale_price") or p.get("price", 1499)
-                return f"Great choice! Within your budget, I highly recommend the {p.get('name')} at ₹{price:,.0f}. It features responsive cushioning and durable grip. What size do you wear? 👟"
-            return "Got it! Looking for top footwear within your budget. Let me know your preferred style (Running, Walking, or Casual) and size!"
+                return f"Nice choice! Within your budget, I recommend the {p.get('name')} at ₹{price:,.0f}. It has solid cushioning and durable grip. What UK size do you wear?"
+            return "Got it. Looking for shoes within your budget. Let me know what style you want (Running, Walking, or Casual) and your UK size."
 
         # 7. Category / Running / Walking Inquiry
         if any(cat in msg for cat in ["running", "jog", "walk", "casual", "formal", "trail", "sneaker"]):
@@ -447,20 +446,20 @@ CORE PERSONA & CONVERSATIONAL SALES PHILOSOPHY:
                 p = prods[0]
                 price = p.get("sale_price") or p.get("price", 1499)
                 qty = p.get("quantity") or p.get("available_quantity", 10)
-                stock_label = f"Only {qty} left in stock!" if qty <= 3 else "In stock"
-                return f"Hey! 👋 Check out the {p.get('name')} for ₹{price:,.0f} ({stock_label}). It's engineered with lightweight cushioning for all-day comfort. Which UK size are you looking for?"
+                stock_label = f"Only {qty} left in stock" if qty <= 3 else "In stock"
+                return f"Hey, check out the {p.get('name')} for ₹{price:,.0f} ({stock_label}). It has lightweight cushioning for comfort. Which UK size are you looking for?"
 
         # 8. Greeting / Small talk
         if any(g in msg for g in ["hi", "hello", "hey", "vanakkam", "namaste", "good morning", "good evening"]):
-            return f"Hey {name}! 👋 Welcome to StrideHub Shoes. What kind of shoes are you looking for today? (Running, Casual Sneakers, Walking, or Formal) 👟"
+            return f"Hey {name}, welcome to Starboyz! What kind of shoes are you looking for today? (Running, Casual Sneakers, Walking, or Formal)"
 
         # 9. Generic product response with first matching product
         if prods:
             p = prods[0]
             price = p.get("sale_price") or p.get("price", 1499)
-            return f"The {p.get('name')} is available for ₹{price:,.0f} with instant doorstep delivery. Let me know your UK size to check exact stock! ✨"
+            return f"The {p.get('name')} is available for ₹{price:,.0f} with fast doorstep delivery. Let me know your UK size so I can check live stock."
 
-        return "Hey! I'm your AI footwear advisor. Tell me what type of shoes you're looking for, your budget, or your UK size, and I'll find your perfect pair!"
+        return "Hey! Tell me what type of shoes you're looking for, your budget, or your UK size, and I'll find you the best pair."
 
     def _extract_json_block(self, text: str) -> str:
         text = text.strip()

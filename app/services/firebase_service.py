@@ -696,16 +696,16 @@ class FirebaseService:
         # 1. Business Profile & Policies
         b_settings = BusinessSettingsDocument(
             businessId=business_id,
-            business_name="StrideHub Shoes",
-            business_description="Premium Performance, Casual & Formal Footwear Engineered for Comfort",
-            address="StrideHub Flagship Store, 100ft Road, Indiranagar, Bengaluru, KA 560038",
+            business_name="Starboyz",
+            business_description="Starboyz Footwear - Style, Performance & Comfort",
+            address="Starboyz Flagship Store, 100ft Road, Indiranagar, Bengaluru, KA 560038",
             working_hours="9:00 AM - 9:00 PM (Monday - Sunday)",
             return_refund_policy="7-day hassle-free return window for unworn shoes with original packaging.",
             exchange_policy="15-day free size exchange available if the fit isn't perfect.",
             shipping_information="Free shipping on orders above ₹999. Delivered in 3-5 business days across India.",
             available_offers=[
-                {"code": "STRIDE10", "title": "10% Off First Purchase", "discount_pct": 10, "min_order_amount": 2000, "description": "10% discount on cart value above ₹2,000"},
-                {"code": "RUNNER15", "title": "15% Off Running Shoes", "discount_pct": 15, "min_order_amount": 2500, "description": "15% off performance running collection"}
+                {"code": "STAR10", "title": "10% Off First Purchase", "discount_pct": 10, "min_order_amount": 2000, "description": "10% discount on cart value above ₹2,000"},
+                {"code": "STAR15", "title": "15% Off Running Shoes", "discount_pct": 15, "min_order_amount": 2500, "description": "15% off performance running collection"}
             ]
         )
         self.set_business_settings(business_id, b_settings)

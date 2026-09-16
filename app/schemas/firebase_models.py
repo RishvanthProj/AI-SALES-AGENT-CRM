@@ -232,15 +232,15 @@ class OrderDocument(BaseModel):
 class BusinessSettingsDocument(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     businessId: str = "stridehub-shoes"
-    business_name: str = "StrideHub Shoes"
-    business_description: str = "Premium Performance, Casual, & Formal Footwear Engineered for Comfort"
-    address: str = "StrideHub Flagship Store, 100ft Road, Indiranagar, Bengaluru, KA 560038"
+    business_name: str = "Starboyz"
+    business_description: str = "Starboyz Footwear - Style, Performance and Comfort"
+    address: str = "Starboyz Store, 100ft Road, Indiranagar, Bengaluru, KA 560038"
     working_hours: str = "9:00 AM - 9:00 PM (Monday - Sunday)"
     contact_details: Dict[str, str] = Field(default_factory=lambda: {
         "phone": "+91 80 4123 9876",
         "whatsapp": "+91 98765 43210",
-        "email": "support@stridehub.in",
-        "website": "https://stridehub.in"
+        "email": "support@starboyz.in",
+        "website": "https://starboyz.in"
     })
     shipping_information: str = "Free shipping on orders above ₹999. Delivered in 3-5 business days across India."
     payment_methods: List[str] = Field(default_factory=lambda: ["UPI (GPay/PhonePe)", "Credit/Debit Card", "Cash on Delivery", "Net Banking"])
