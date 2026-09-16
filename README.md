@@ -113,12 +113,13 @@ Open your browser at `http://localhost:8000`.
 
 ## Running Automated Tests
 
-Run the full suite of **55 automated tests**:
+Run the full suite of **60 automated tests**:
 ```bash
 pytest -v
 ```
 
 Test suites include:
+- `tests/test_multilingual_adaptation.py`: Pan-India transliterated language adaptation (Tanglish persistence for Tamil Nadu, Hinglish, Tenglish, Manglish, English), end-to-end multi-turn dialog, and zero emoji enforcement.
 - `tests/test_stridehub_shoes.py`: Product search, size 14 correction, out of stock (stock=0), low stock (stock=3), price fidelity, discount refusal, order tracking, Tanglish, context memory, atomic inventory, and REST APIs.
 - `tests/test_gemini_conversational.py`: Natural language, typos, greetings, small talk, abusive language de-escalation, prompt injection defense, LangGraph scoring.
 - `tests/test_firebase_grounding.py`: Anti-hallucination validation, price sanitization, stock detection, and atomic inventory updates.

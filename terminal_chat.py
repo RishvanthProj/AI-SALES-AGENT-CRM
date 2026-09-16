@@ -131,20 +131,53 @@ def print_upi_qr_code(amount: float, product_name: str, size: str):
     print(f"{BOLD}{PURPLE}===========================================================================\n{RESET}")
 
 
+def detect_language_flavor(user_input: str, history: List[Dict[str, str]]) -> str:
+    """Detects conversation language: 'tanglish', 'hinglish', 'tenglish', 'manglish', or 'english'."""
+    all_text = " ".join([t.get("content", "") for t in history[-6:]] + [user_input]).lower()
+    
+    # Tamil / Tanglish triggers
+    tanglish_words = [
+        "venum", "sollunga", "iruka", "irukuma", "nalla", "kudunga", "panren", "panna",
+        "machan", "thala", "epdi", "romba", "mattum", "edhuku", "enga", "kandippa",
+        "seri", "aama", "illa", "annachi", "kudukureengala", "varuma", "podhum",
+        "paravala", "naanum", "ungaluku", "tamil", "chennai", "coimbatore", "madurai", "vanakkam"
+    ]
+    if any(w in all_text for w in tanglish_words):
+        return "tanglish"
+        
+    # Hindi / Hinglish triggers
+    hinglish_words = [
+        "chahiye", "kaise", "kya", "bhai", "batao", "dikhao", "dikhaye", "hoga",
+        "milega", "kitna", "daam", "namaste", "haan", "nahi", "karo", "achha",
+        "badhiya", "shukriya", "bhejo", "dedo", "karenge", "karna", "aap", "delhi", "mumbai"
+    ]
+    if any(w in all_text for w in hinglish_words):
+        return "hinglish"
+
+    # Telugu / Tenglish triggers
+    tenglish_words = ["kavali", "cheppandi", "unda", "bhayya", "entha", "choodandi", "ivvandi"]
+    if any(w in all_text for w in tenglish_words):
+        return "tenglish"
+
+    # Malayalam / Manglish triggers
+    manglish_words = ["venam", "nokkunne", "para", "chetta", "vilayenta", "undo"]
+    if any(w in all_text for w in manglish_words):
+        return "manglish"
+
+    return "english"
+
+
 def handle_checkout_flow(user_input: str, history: List[Dict[str, str]]) -> Optional[str]:
     """
-    Handles interactive step-by-step customer checkout:
-    1. Collect Name, Address, State/Pincode
-    2. Choose Payment Method (COD vs UPI)
-    3. Process UPI QR or COD and create Firestore order record
+    Handles interactive step-by-step customer checkout with full language mirroring.
     """
     global checkout_session
     t = user_input.lower().strip()
     all_products = firebase_service.list_all_products("stridehub-shoes")
+    lang = detect_language_flavor(user_input, history)
 
     # If checkout was just initiated
     if not checkout_session["active"]:
-        # Find which product customer is referring to
         target_prod = None
         for p in all_products:
             name_words = [w.lower() for w in p.name.split() if len(w) > 3]
@@ -152,7 +185,6 @@ def handle_checkout_flow(user_input: str, history: List[Dict[str, str]]) -> Opti
                 target_prod = p
                 break
 
-        # If not in current message, look in recent conversation history
         if not target_prod:
             for turn in reversed(history[-6:]):
                 turn_text = turn.get("content", "").lower()
@@ -167,7 +199,6 @@ def handle_checkout_flow(user_input: str, history: List[Dict[str, str]]) -> Opti
         if not target_prod:
             target_prod = all_products[0]
 
-        # Extract size if mentioned
         size_match = re.search(r'(?:size\s*|uk\s*)(\d{1,2})', t)
         size_val = size_match.group(1) if size_match else "9"
 
@@ -177,6 +208,26 @@ def handle_checkout_flow(user_input: str, history: List[Dict[str, str]]) -> Opti
         checkout_session["size"] = size_val
         checkout_session["price"] = float(target_prod.price)
         checkout_session["mrp"] = float(target_prod.mrp)
+        checkout_session["lang"] = lang
+
+        if lang == "tanglish":
+            return (
+                f"Super choice bro! Ungaloda {target_prod.name} (UK Size {size_val}) order Rs. {target_prod.price:,.0f} ku free express delivery oda place pannidalam.\n\n"
+                f"Unga delivery details anupunga bro:\n"
+                f"1. Full Name\n"
+                f"2. Full Address and City\n"
+                f"3. State and Pincode\n\n"
+                f"{DIM}(Orey message la anupalam, ex: 'Rishvanth, 42 100ft Road, Indiranagar, Bangalore, Karnataka - 560038'){RESET}"
+            )
+        elif lang == "hinglish":
+            return (
+                f"Badhiya choice bhai! Aapka {target_prod.name} (UK Size {size_val}) ka order Rs. {target_prod.price:,.0f} mein free express delivery ke sath place kar dete hain.\n\n"
+                f"Apni delivery details bhej dijiye bhai:\n"
+                f"1. Full Name\n"
+                f"2. Full Address and City\n"
+                f"3. State and Pincode\n\n"
+                f"{DIM}(Ek hi message mein bhej sakte ho, ex: 'Rishvanth, 42 100ft Road, Indiranagar, Bangalore, Karnataka - 560038'){RESET}"
+            )
 
         return (
             f"Great choice. Let's get your order placed for {target_prod.name} (UK Size {size_val}) for Rs. {target_prod.price:,.0f} with free express delivery.\n\n"
@@ -199,6 +250,38 @@ def handle_checkout_flow(user_input: str, history: List[Dict[str, str]]) -> Opti
         price = checkout_session["price"]
         mrp = checkout_session["mrp"]
         addr = checkout_session["delivery_address"]
+        lang = checkout_session.get("lang", lang)
+
+        if lang == "tanglish":
+            return (
+                f"Order Summary:\n"
+                f"-----------------------------------------\n"
+                f"Item:        {prod.name} (UK Size {size})\n"
+                f"Price:       Rs. {price:,.0f} (MRP Rs. {mrp:,.0f})\n"
+                f"Shipping:    Free Express Delivery (2-3 Days)\n"
+                f"Total:       Rs. {price:,.0f}\n"
+                f"Deliver To:  {addr}\n"
+                f"-----------------------------------------\n\n"
+                f"Payment epdi panna poreenga bro?\n"
+                f"1. 'COD' nu type pannunga - Cash on Delivery (Delivery apo pay pannalam)\n"
+                f"2. 'UPI' nu type pannunga - Instant UPI / QR Scan (GPay, PhonePe, Paytm)\n\n"
+                f"Endha payment option ungaluku comfortable bro?"
+            )
+        elif lang == "hinglish":
+            return (
+                f"Order Summary:\n"
+                f"-----------------------------------------\n"
+                f"Item:        {prod.name} (UK Size {size})\n"
+                f"Price:       Rs. {price:,.0f} (MRP Rs. {mrp:,.0f})\n"
+                f"Shipping:    Free Express Delivery (2-3 Days)\n"
+                f"Total:       Rs. {price:,.0f}\n"
+                f"Deliver To:  {addr}\n"
+                f"-----------------------------------------\n\n"
+                f"Payment kaise karenge bhai?\n"
+                f"1. 'COD' type karein - Cash on Delivery (Delivery ke time pay karein)\n"
+                f"2. 'UPI' type karein - Instant UPI / QR Scan (GPay, PhonePe, Paytm)\n\n"
+                f"Kaunsa payment option sahi rahega aapke liye?"
+            )
 
         return (
             f"Order Summary:\n"
@@ -217,28 +300,38 @@ def handle_checkout_flow(user_input: str, history: List[Dict[str, str]]) -> Opti
 
     # Step 2: Choose Payment
     if checkout_session["step"] == "choose_payment":
+        lang = checkout_session.get("lang", lang)
         if "cod" in t or "cash" in t or "1" in t:
             checkout_session["payment_method"] = "Cash on Delivery"
-            return finalize_order(is_cod=True)
+            return finalize_order(is_cod=True, lang=lang)
 
         elif "upi" in t or "qr" in t or "gpay" in t or "phonepe" in t or "2" in t or "online" in t:
             checkout_session["payment_method"] = "UPI"
             checkout_session["step"] = "await_upi"
             prod = checkout_session["product"]
             print_upi_qr_code(checkout_session["price"], prod.name, checkout_session["size"])
+            if lang == "tanglish":
+                return f"Mela irukura QR code scan panni Rs. {checkout_session['price']:,.0f} UPI la pay pannidunga bro. Transfer pannadhuku appram 'PAID' illana 'DONE' nu type pannunga."
+            elif lang == "hinglish":
+                return f"Upar diye gaye QR code ko scan karke Rs. {checkout_session['price']:,.0f} UPI se pay karein. Payment hone ke baad 'PAID' ya 'DONE' reply karein."
             return "Please scan the QR code above to pay Rs. " + f"{checkout_session['price']:,.0f}" + " using any UPI app. Once done, type 'PAID' or 'DONE' to confirm."
 
     # Step 3: Await UPI Payment
     if checkout_session["step"] == "await_upi":
-        if any(w in t for w in ["paid", "done", "yes", "completed", "success", "sent", "transferred", "ok"]):
-            return finalize_order(is_cod=False)
+        lang = checkout_session.get("lang", lang)
+        if any(w in t for w in ["paid", "done", "yes", "completed", "success", "sent", "transferred", "ok", "panniten", "ho gaya"]):
+            return finalize_order(is_cod=False, lang=lang)
         else:
+            if lang == "tanglish":
+                return "Payment confirmation kaga wait panren bro. Transfer pannadhuku appram 'PAID' illana 'DONE' nu anupunga, illana Cash on Delivery ku 'COD' nu sollunga."
+            elif lang == "hinglish":
+                return "Payment confirmation ka wait kar rahe hain bhai. Transfer hone ke baad 'PAID' ya 'DONE' reply karein, ya Cash on Delivery ke liye 'COD' bolein."
             return "Waiting for payment confirmation. Please reply 'PAID' or 'DONE' once you have transferred, or reply 'COD' if you want Cash on Delivery instead."
 
     return None
 
 
-def finalize_order(is_cod: bool) -> str:
+def finalize_order(is_cod: bool, lang: str = "english") -> str:
     """Creates a verified OrderDocument in Cloud Firestore and decrements inventory atomically."""
     global checkout_session
     prod = checkout_session["product"]
@@ -294,9 +387,37 @@ def finalize_order(is_cod: bool) -> str:
         "delivery_address": None,
         "state_pincode": None,
         "payment_method": None,
+        "lang": "english",
     }
 
     status_badge = "PENDING (Pay on delivery)" if is_cod else "PAID (UPI Verified)"
+
+    if lang == "tanglish":
+        return (
+            f"Unga order confirm aayiduchu bro!\n\n"
+            f"-----------------------------------------\n"
+            f"Order ID:     #{order_id}\n"
+            f"Shoe:         {prod.name} (UK Size {size})\n"
+            f"Total:        Rs. {price:,.0f} ({status_badge})\n"
+            f"Courier:      BlueDart Express (AWB: {tracking_id})\n"
+            f"Delivery:     2 to 3 Business Days kula door delivery aayidum\n"
+            f"Address:      {addr}\n"
+            f"-----------------------------------------\n\n"
+            f"Unga order system la register aayiduchu. Status check panna eppo venalum 'track #{order_id}' nu type pannunga. Starboyz la shop pannadhuku romba thanks bro!"
+        )
+    elif lang == "hinglish":
+        return (
+            f"Aapka order confirm ho gaya hai bhai!\n\n"
+            f"-----------------------------------------\n"
+            f"Order ID:     #{order_id}\n"
+            f"Shoe:         {prod.name} (UK Size {size})\n"
+            f"Total:        Rs. {price:,.0f} ({status_badge})\n"
+            f"Courier:      BlueDart Express (AWB: {tracking_id})\n"
+            f"Delivery:     2 se 3 Business Days mein deliver ho jayega\n"
+            f"Address:      {addr}\n"
+            f"-----------------------------------------\n\n"
+            f"Aapka order hamare system mein book ho gaya hai. Status check karne ke liye 'track #{order_id}' type karein. Starboyz se shopping karne ke liye shukriya bhai!"
+        )
 
     return (
         f"Your order has been confirmed!\n\n"
