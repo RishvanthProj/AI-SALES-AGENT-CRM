@@ -42,19 +42,18 @@ class ValidationService:
             actual_price = float(p.get("salePrice") or p.get("sale_price") or p.get("price") or 0.0)
             p_name = p.get("name", "Product")
 
-            # Find all price mentions in the AI text (e.g. ₹1,299, ₹1299, Rs. 1499, $1499, 1499)
-            price_matches = re.findall(r'(?:₹|rs\.?|\$)\s?(\d+[\d,]*(?:\.\d{2})?)', generated_reply, re.IGNORECASE)
+            # Check if AI explicitly claims a false price as the actual selling price
+            # e.g., "The price is ₹800", "It costs ₹1499", "available for ₹900"
+            price_claim_pattern = r'(?:price is|costs|available for|buy it for|at a price of|selling at)\s*(?:₹|rs\.?|\$)\s?(\d+[\d,]*(?:\.\d{2})?)'
+            price_claims = re.findall(price_claim_pattern, generated_reply, re.IGNORECASE)
 
-            for raw_p in price_matches:
-                mentioned_price = float(raw_p.replace(",", ""))
-                # If mentioned price deviates significantly from actual price (and isn't budget/quantity)
-                if abs(mentioned_price - actual_price) > 0.01:
-                    # Check if mentioned price is a false claim
-                    violations.append(f"Price mismatch: AI generated ₹{mentioned_price}, but Firebase truth is ₹{actual_price}")
-                    # Correct the price in sanitized text
+            for raw_claim in price_claims:
+                claimed_price = float(raw_claim.replace(",", ""))
+                if abs(claimed_price - actual_price) > 0.01:
+                    violations.append(f"Price mismatch: AI claimed price is ₹{claimed_price}, but Firebase truth is ₹{actual_price}")
                     sanitized = re.sub(
-                        rf'(₹|rs\.?|\$)\s?{re.escape(raw_p)}',
-                        f"₹{int(actual_price) if actual_price.is_integer() else actual_price:,.2f}",
+                        rf'(price is|costs|available for|buy it for|at a price of|selling at)\s*(?:₹|rs\.?|\$)\s?{re.escape(raw_claim)}',
+                        f"\\1 ₹{int(actual_price) if actual_price.is_integer() else actual_price:,.2f}",
                         sanitized,
                         flags=re.IGNORECASE
                     )
@@ -78,7 +77,7 @@ class ValidationService:
             stock_mentions = re.findall(r'(\d+)\s+(?:in stock|left|pieces available|units available|available)', sanitized, re.IGNORECASE)
             for raw_stock in stock_mentions:
                 mentioned_qty = int(raw_stock)
-                if mentioned_qty != actual_stock and actual_stock > 0:
+                if mentioned_qty != actual_stock and actual_stock > 0 and mentioned_qty > 0:
                     violations.append(f"Stock count mismatch: AI said {mentioned_qty}, Firebase has {actual_stock}")
                     sanitized = re.sub(
                         rf'\b{mentioned_qty}\s+(in stock|left|pieces available|units available|available)',
@@ -88,12 +87,11 @@ class ValidationService:
                     )
 
             # Invalid size check: if customer asked for a size not in available_sizes
-            req_size_match = re.search(r'\b(xxl|xl|l|m|s|xs|\d{1,2})\b', customer_message, re.IGNORECASE)
+            req_size_match = re.search(r'\b(?:size\s+)?(xxl|xl|l|m|s|xs|\d{1,2})\b', customer_message, re.IGNORECASE)
             if req_size_match and avail_sizes:
                 req_size = req_size_match.group(1).upper()
                 if req_size not in [s.upper() for s in avail_sizes]:
-                    # Ensure sanitized reply clarifies size unavailability
-                    if req_size in sanitized.upper() and ("available" in sanitized.lower() or "yes" in sanitized.lower()):
+                    if req_size in sanitized.upper() and ("available" in sanitized.lower() or "yes, we have" in sanitized.lower()):
                         sizes_str = ", ".join(avail_sizes)
                         violations.append(f"Invalid size accepted: {req_size} is not in {avail_sizes}")
                         sanitized = f"Size {req_size} isn't available for this product. The available sizes are {sizes_str}."
@@ -109,7 +107,6 @@ class ValidationService:
 
         # 3. Product Not Found Validation
         if inventory_data and not inventory_data.get("found") and not verified_products:
-            # If user asked for product and none exists, ensure AI doesn't pretend it's in stock or provide fake prices
             affirmative_words = ["yes", "we have", "available", "in stock", "₹", "$", "price is", "buy"]
             if any(w in sanitized.lower() for w in affirmative_words):
                 violations.append("AI hallucinated product that does not exist in Firebase.")
@@ -117,8 +114,9 @@ class ValidationService:
 
         # 4. Unauthorized Discount Check
         if any(w in customer_message.lower() for w in ["discount", "for 800", "for ₹800", "less", "cheap", "offer"]):
-            discount_affirmations = ["sure", "yes", "i can give", "can give", "agreed", "offer you", "deal", "take it for"]
-            if any(re.search(rf'\b{w}\b', sanitized, re.IGNORECASE) for w in discount_affirmations):
+            discount_affirmations = ["sure", "yes", "i can give", "can give", "agreed", "offer you", "deal", "take it for", "give it for"]
+            is_refusal = any(ref in sanitized.lower() for ref in ["cannot", "can't", "don't have", "not able", "cannot offer", "not available"])
+            if any(re.search(rf'\b{re.escape(w)}\b', sanitized, re.IGNORECASE) for w in discount_affirmations) and not is_refusal:
                 violations.append("Unauthorized discount promised without Firebase rule authorization.")
                 if verified_products:
                     p = verified_products[0]

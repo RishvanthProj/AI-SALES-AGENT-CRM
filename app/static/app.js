@@ -2067,12 +2067,85 @@
         }
       });
 
+    // API Key Modal Handlers
+    const openKeyBtn = document.getElementById("open-api-key-modal-btn");
+    const keyModal = document.getElementById("api-key-modal");
+    const closeKeyBtn = document.getElementById("close-api-key-modal");
+    const cancelKeyBtn = document.getElementById("cancel-api-key-btn");
+    const saveKeyBtn = document.getElementById("save-api-key-btn");
+    const keyInput = document.getElementById("gemini-key-input");
+    const statusBadge = document.getElementById("gemini-status-badge");
+
+    const savedKey = localStorage.getItem("solevault_gemini_key");
+    if (savedKey && keyInput) {
+      keyInput.value = savedKey;
+      if (statusBadge) {
+        statusBadge.textContent = "Gemini Live 🟢";
+        statusBadge.style.color = "#25d366";
+      }
+    }
+
+    // Check backend config
+    fetch("/api/chat/config")
+      .then((r) => r.json())
+      .then((cfg) => {
+        if (cfg.gemini_active && statusBadge) {
+          statusBadge.textContent = "Gemini Live 🟢";
+          statusBadge.style.color = "#25d366";
+        }
+      })
+      .catch(() => {});
+
+    function toggleKeyModal(show) {
+      if (keyModal) {
+        if (show) keyModal.classList.add("active");
+        else keyModal.classList.remove("active");
+      }
+    }
+
+    openKeyBtn && openKeyBtn.addEventListener("click", () => toggleKeyModal(true));
+    closeKeyBtn && closeKeyBtn.addEventListener("click", () => toggleKeyModal(false));
+    cancelKeyBtn && cancelKeyBtn.addEventListener("click", () => toggleKeyModal(false));
+
+    saveKeyBtn &&
+      saveKeyBtn.addEventListener("click", async () => {
+        const key = keyInput ? keyInput.value.trim() : "";
+        if (!key) {
+          showToast("Please enter a valid Gemini API Key", "error");
+          return;
+        }
+
+        try {
+          const resp = await fetch("/api/chat/key", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ gemini_api_key: key }),
+          });
+
+          if (resp.ok) {
+            localStorage.setItem("solevault_gemini_key", key);
+            toggleKeyModal(false);
+            if (statusBadge) {
+              statusBadge.textContent = "Gemini Live 🟢";
+              statusBadge.style.color = "#25d366";
+            }
+            showToast("Gemini API Key activated! Live AI chat is ready.", "success");
+          } else {
+            showToast("Failed to activate key. Check format.", "error");
+          }
+        } catch (e) {
+          localStorage.setItem("solevault_gemini_key", key);
+          toggleKeyModal(false);
+          showToast("Gemini API Key saved locally.", "success");
+        }
+      });
+
     // Initial greeting in chat box
     const messagesBox = document.getElementById("chat-messages-box");
     if (messagesBox && messagesBox.children.length === 0) {
       appendChatMessage(
         "ai",
-        "Hello! ⚡ Welcome to SOLEVAULT. I am your personal AI Footwear Advisor. Looking for high-propulsion running shoes, luxury lifestyle sneakers, or tracking an active order? How may I help you today?"
+        "Hello! 👟 Welcome to StrideHub Shoes & SoleVault. I am your personal AI Footwear Specialist powered by Google Gemini and live Cloud Firestore inventory. What kind of shoes are you looking for today? Tell me your preferred style, budget, or UK size!"
       );
     }
   }
@@ -2097,14 +2170,16 @@
     state.isTyping = true;
 
     try {
+      const apiKey = localStorage.getItem("solevault_gemini_key") || null;
       const res = await fetch("/api/chat/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           business_id: "stridehub-shoes",
           phone_number: "+919876543210",
-          customer_name: "Rishvanth",
+          customer_name: "Customer",
           message: text,
+          api_key: apiKey,
         }),
       });
 

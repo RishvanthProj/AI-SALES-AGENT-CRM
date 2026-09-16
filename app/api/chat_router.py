@@ -5,8 +5,10 @@ from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from app.config import settings
 from app.services.firebase_service import firebase_service
 from app.services.validation_service import validation_service
+from app.services.gemini_service import gemini_service
 from app.services.ai_service_factory import get_ai_provider
 from app.schemas.ai import GroundedResponseContext
 from app.agent.graph import sales_graph
@@ -21,6 +23,7 @@ class ChatMessageRequest(BaseModel):
     phone_number: str = "+919876543210"
     customer_name: Optional[str] = "Customer"
     business_id: str = "stridehub-shoes"
+    api_key: Optional[str] = None
 
 
 class ChatMessageResponse(BaseModel):
@@ -32,6 +35,40 @@ class ChatMessageResponse(BaseModel):
     order_info: Optional[Dict[str, Any]] = None
     quick_replies: List[str] = []
     route_destination: Optional[str] = None
+
+
+class SetApiKeyRequest(BaseModel):
+    gemini_api_key: str
+
+
+@router.post("/key")
+async def set_gemini_api_key(req: SetApiKeyRequest):
+    """
+    Updates the runtime Gemini API key dynamically without requiring server restart.
+    """
+    key = req.gemini_api_key.strip()
+    if not key or len(key) < 10:
+        raise HTTPException(status_code=400, detail="Invalid Gemini API key provided")
+
+    settings.GEMINI_API_KEY = key
+    gemini_service._api_key = key
+    gemini_service._initialize_client()
+    return {"status": "success", "message": "Gemini API key active and ready for live AI conversation!"}
+
+
+@router.get("/config")
+async def get_chat_config():
+    """
+    Returns current AI provider status and Firestore grounding connectivity.
+    """
+    has_key = bool(gemini_service.client is not None)
+    return {
+        "gemini_active": has_key,
+        "model": settings.GEMINI_MODEL,
+        "provider": settings.AI_PROVIDER,
+        "firebase_tenant": "stridehub-shoes",
+        "firebase_project": settings.FIREBASE_PROJECT_ID or "ai-sales-agent---shoe"
+    }
 
 
 @router.post("", response_model=ChatMessageResponse)
@@ -52,6 +89,13 @@ async def send_chat_message(payload: ChatMessageRequest):
 
     if not message_text:
         raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+    # If client passed an API key in request, apply it
+    if payload.api_key and len(payload.api_key.strip()) > 10 and not payload.api_key.startswith("your_"):
+        settings.GEMINI_API_KEY = payload.api_key.strip()
+        gemini_service._api_key = payload.api_key.strip()
+        if not gemini_service.client:
+            gemini_service._initialize_client()
 
     ai = get_ai_provider()
     b_settings = firebase_service.get_business_settings(business_id)
@@ -75,7 +119,7 @@ async def send_chat_message(payload: ChatMessageRequest):
     history = firebase_service.get_recent_conversation_history(
         business_id=business_id,
         customer_id=customer.id,
-        limit=6
+        limit=8
     )
 
     # 3. Check for Order Lookup intent
@@ -102,8 +146,8 @@ async def send_chat_message(payload: ChatMessageRequest):
     )
 
     # If no specific search match, check if general shoe category mentioned
-    if not matched_products and any(cat in message_text.lower() for cat in ["running", "casual", "formal", "trail", "sneaker", "walking", "jogging"]):
-        for cat in ["running", "casual", "formal", "trail", "sneaker", "walking", "jogging"]:
+    if not matched_products and any(cat in message_text.lower() for cat in ["running", "casual", "formal", "trail", "sneaker", "walking", "jogging", "gym"]):
+        for cat in ["running", "casual", "formal", "trail", "sneaker", "walking", "jogging", "gym"]:
             if cat in message_text.lower():
                 matched_products = firebase_service.search_products(business_id=business_id, query=cat)
                 break
@@ -116,11 +160,13 @@ async def send_chat_message(payload: ChatMessageRequest):
             max_budget=sales_info.budget
         )
 
-    # If still empty, get all top shoes so AI has live context
+    # All products in catalog for full grounded reasoning
+    all_catalog_prods = firebase_service.list_all_products(business_id)
     if not matched_products:
-        matched_products = firebase_service.list_all_products(business_id)
+        matched_products = all_catalog_prods
 
     verified_prods = [p.model_dump(by_alias=True) for p in matched_products]
+    all_prods_dump = [p.model_dump(by_alias=True) for p in all_catalog_prods]
 
     inventory_data = None
     if matched_products:
@@ -168,7 +214,7 @@ async def send_chat_message(payload: ChatMessageRequest):
         current_stage=final_stage,
         lead_name=customer.name or payload.customer_name,
         conversation_history=history,
-        verified_products=verified_prods[:4],
+        verified_products=all_prods_dump[:6],
         inventory_data=inventory_data,
         business_policies={
             "shipping": b_settings.shipping_information,
@@ -239,7 +285,7 @@ async def send_chat_message(payload: ChatMessageRequest):
     quick_replies = []
     if final_stage == "greet":
         quick_replies = ["Running Shoes under ₹2,000", "Casual Sneakers", "Track Order #SH-8942", "7-Day Return Policy"]
-    elif matched_products:
+    elif matched_products and len(matched_products) > 0:
         p = matched_products[0]
         sizes = p.availableSizes or ["7", "8", "9", "10"]
         quick_replies = [f"Check size {s}" for s in sizes[:3]] + ["Delivery options", "Is Cash on Delivery available?"]
