@@ -1,6 +1,6 @@
 # Automated Chatbot Failure Analysis & Root Cause Report
 **System**: Starboyz AI Sales Agent & CRM  
-**Date**: 2026-09-16 13:34:51 UTC  
+**Date**: 2026-09-16 14:54:34 UTC  
 **Total Failures**: 116 / 200 Single-Turn Tests (42.0% Pass Rate)  
 
 ---
@@ -21,7 +21,7 @@
 ### Failure 1: TC-GOOD-007 (Basic product enquiries)
 - **Input**: `"What colors are available?"`
 - **Expected**: Detect intent in ['product_enquiry', 'variant_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: stock_check, Score: 30.0, Stage: route, Reply: Hey bro! Colors appo appo model-ku model maarum bro. Neenga enda shoe or categor...
+- **Actual**: Intent: stock_check, Score: 30.0, Stage: route, Reply: Hey! It depends on which model you are looking at. Are you interested in our run...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'stock_check' expected '['product_enquiry', 'variant_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -32,7 +32,7 @@
 ### Failure 2: TC-GOOD-009 (Basic product enquiries)
 - **Input**: `"Is there a smaller size available?"`
 - **Expected**: Detect intent in ['product_enquiry', 'variant_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: stock_check, Score: 30.0, Stage: route, Reply: Hey bro! Chhota size na, kandippa iruku. Ungaluku enna UK size venum (5, 6, 7 ap...
+- **Actual**: Intent: stock_check, Score: 30.0, Stage: route, Reply: Which model are you looking at, and what size do you need? Let me know the speci...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'stock_check' expected '['product_enquiry', 'variant_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -43,7 +43,7 @@
 ### Failure 3: TC-GOOD-012 (Basic product enquiries)
 - **Input**: `"How much does the product weigh?"`
 - **Expected**: Detect intent in ['product_enquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: pricing, Score: 30.0, Stage: route, Reply: Hey bro! Which specific shoe are you checking the weight for? Most of our sneake...
+- **Actual**: Intent: pricing, Score: 30.0, Stage: route, Reply: Hey, all our shoes currently in stock, including the StrideAir Zoom, StrideGlide...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'pricing' expected '['product_enquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -54,7 +54,7 @@
 ### Failure 4: TC-GOOD-013 (Basic product enquiries)
 - **Input**: `"Is this suitable for daily use?"`
 - **Expected**: Detect intent in ['product_enquiry', 'use_case'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: greeting, Score: 30.0, Stage: route, Reply: Hey bro! Daily use ku unga preference perula iruku. Neenga office/college ku pod...
+- **Actual**: Intent: greeting, Score: 30.0, Stage: route, Reply: Hey! That depends on what you have in mind for your daily routine. Are you looki...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'greeting' expected '['product_enquiry', 'use_case']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -65,7 +65,7 @@
 ### Failure 5: TC-GOOD-018 (Basic product enquiries)
 - **Input**: `"Can I see the available variants?"`
 - **Expected**: Detect intent in ['product_enquiry', 'variant_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: stock_check, Score: 30.0, Stage: route, Reply: Hey! We have a great range of shoes available right now across running, walking,...
+- **Actual**: Intent: stock_check, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'stock_check' expected '['product_enquiry', 'variant_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -76,7 +76,7 @@
 ### Failure 6: TC-GOOD-020 (Basic product enquiries)
 - **Input**: `"When will this product be back in stock?"`
 - **Expected**: Detect intent in ['stock_check', 'restock'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey bro! Which specific shoe are you asking about? Let me check our stock and le...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey Customer, welcome to Starboyz! What kind of shoes are you looking for today?...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['stock_check', 'restock']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -87,7 +87,7 @@
 ### Failure 7: TC-GOOD-023 (Price-related enquiries)
 - **Input**: `"Are there any additional charges?"`
 - **Expected**: Detect intent in ['pricing', 'charges'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey! There are no hidden charges. The price you see for the shoe is the final pr...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['pricing', 'charges']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -98,7 +98,7 @@
 ### Failure 8: TC-GOOD-024 (Price-related enquiries)
 - **Input**: `"Is shipping included in the price?"`
 - **Expected**: Detect intent in ['pricing', 'shipping_inquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey! Shipping is totally free on all orders above Rs. 999. Since our shoes are w...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey Customer, welcome to Starboyz! What kind of shoes are you looking for today?...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['pricing', 'shipping_inquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -109,7 +109,7 @@
 ### Failure 9: TC-GOOD-034 (Price-related enquiries)
 - **Input**: `"What payment options do you accept?"`
 - **Expected**: Detect intent in ['payment_inquiry', 'general_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey! We make it super easy for you. You can pay using UPI like GPay or PhonePe, ...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['payment_inquiry', 'general_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -120,7 +120,7 @@
 ### Failure 10: TC-GOOD-035 (Price-related enquiries)
 - **Input**: `"Can I pay online?"`
 - **Expected**: Detect intent in ['payment_inquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Yes, absolutely. We accept online payments through all major methods including U...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['payment_inquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -131,7 +131,7 @@
 ### Failure 11: TC-GOOD-036 (Price-related enquiries)
 - **Input**: `"Is cash on delivery available?"`
 - **Expected**: Detect intent in ['payment_inquiry', 'cod_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: stock_check, Score: 30.0, Stage: route, Reply: Haan bhai, bilkul available hai. Aap cash on delivery choose kar sakte hain, ya ...
+- **Actual**: Intent: stock_check, Score: 30.0, Stage: route, Reply: Yes! Cash on Delivery is available across all serviceable pincodes in India, alo...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'stock_check' expected '['payment_inquiry', 'cod_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -142,7 +142,7 @@
 ### Failure 12: TC-GOOD-037 (Price-related enquiries)
 - **Input**: `"Do you accept UPI payments?"`
 - **Expected**: Detect intent in ['payment_inquiry', 'upi_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Yes, we definitely accept UPI payments. You can use GPay, PhonePe, or any other ...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['payment_inquiry', 'upi_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -153,7 +153,7 @@
 ### Failure 13: TC-GOOD-038 (Price-related enquiries)
 - **Input**: `"Can I pay after receiving the product?"`
 - **Expected**: Detect intent in ['payment_inquiry', 'cod_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Yes, absolutely. We have a cash on delivery option available, so you can definit...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['payment_inquiry', 'cod_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -164,7 +164,7 @@
 ### Failure 14: TC-GOOD-039 (Price-related enquiries)
 - **Input**: `"Are there any hidden charges?"`
 - **Expected**: Detect intent in ['pricing', 'general_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: greeting, Score: 30.0, Stage: route, Reply: Hey! No hidden charges at all. The price you see for the shoes is exactly what y...
+- **Actual**: Intent: greeting, Score: 30.0, Stage: route, Reply: Hey Customer, welcome to Starboyz! What kind of shoes are you looking for today?...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'greeting' expected '['pricing', 'general_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -175,7 +175,7 @@
 ### Failure 15: TC-GOOD-040 (Price-related enquiries)
 - **Input**: `"Can you tell me the total amount before I order?"`
 - **Expected**: Detect intent in ['pricing', 'order_inquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey! I would be happy to help you with that. To give you the exact total, could ...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['pricing', 'order_inquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -395,7 +395,7 @@
 ### Failure 35: TC-GOOD-068 (Delivery and order enquiries)
 - **Input**: `"How many days does dispatch usually take?"`
 - **Expected**: Detect intent in ['shipping_inquiry', 'timeline_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey there! If you order before 3 PM, we dispatch the shoes on the same day itsel...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['shipping_inquiry', 'timeline_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -417,7 +417,7 @@
 ### Failure 37: TC-GOOD-070 (Delivery and order enquiries)
 - **Input**: `"How can I track my order?"`
 - **Expected**: Detect intent in ['tracking_query', 'shipping_inquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey! I can definitely help you with that. Could you please share your order numb...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['tracking_query', 'shipping_inquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -428,7 +428,7 @@
 ### Failure 38: TC-GOOD-071 (Delivery and order enquiries)
 - **Input**: `"Can I choose the delivery date?"`
 - **Expected**: Detect intent in ['shipping_inquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey! Thanks for reaching out. Usually, we dispatch orders the same day if you bo...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['shipping_inquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -439,7 +439,7 @@
 ### Failure 39: TC-GOOD-072 (Delivery and order enquiries)
 - **Input**: `"Can you arrange urgent delivery?"`
 - **Expected**: Detect intent in ['shipping_inquiry', 'urgent_delivery'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 60.0, Stage: route, Reply: Hey! I can definitely check on that for you. Since our standard delivery takes 3...
+- **Actual**: Intent: product_enquiry, Score: 60.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['shipping_inquiry', 'urgent_delivery']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -450,7 +450,7 @@
 ### Failure 40: TC-GOOD-073 (Delivery and order enquiries)
 - **Input**: `"Is same-day delivery available in Chennai?"`
 - **Expected**: Detect intent in ['shipping_inquiry', 'location_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: stock_check, Score: 30.0, Stage: route, Reply: Hey! Thanks for reaching out. Regarding delivery to Chennai, we typically dispat...
+- **Actual**: Intent: stock_check, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'stock_check' expected '['shipping_inquiry', 'location_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -461,7 +461,7 @@
 ### Failure 41: TC-GOOD-074 (Delivery and order enquiries)
 - **Input**: `"How long does shipping usually take to Bangalore?"`
 - **Expected**: Detect intent in ['shipping_inquiry', 'location_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey bro! Starboyz flagship store and central warehouse are right here in Bengalu...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey Customer, welcome to Starboyz! What kind of shoes are you looking for today?...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['shipping_inquiry', 'location_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -472,7 +472,7 @@
 ### Failure 42: TC-GOOD-075 (Delivery and order enquiries)
 - **Input**: `"Can I change the delivery address after ordering?"`
 - **Expected**: Detect intent in ['order_modification', 'policy_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey bro! Yes, order pannathuku apram kuda delivery address change panalam, namma...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['order_modification', 'policy_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -483,7 +483,7 @@
 ### Failure 43: TC-GOOD-076 (Delivery and order enquiries)
 - **Input**: `"Can someone else receive the package for me?"`
 - **Expected**: Detect intent in ['shipping_inquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Aha, yeah of course bro! Adhellam oru problem-e illa. Neenga illadha nerathula u...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['shipping_inquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -494,7 +494,7 @@
 ### Failure 44: TC-GOOD-077 (Delivery and order enquiries)
 - **Input**: `"Do you deliver on Sundays?"`
 - **Expected**: Detect intent in ['shipping_inquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey! Yes, deliveries happen across all 7 days of the week, so Sundays are includ...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Kandiga bro! StrideAir Zoom Casual Sneaker Rs. 1,499 ki available ga undi. Daily...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['shipping_inquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -505,7 +505,7 @@
 ### Failure 45: TC-GOOD-078 (Delivery and order enquiries)
 - **Input**: `"Will the package be safely packed?"`
 - **Expected**: Detect intent in ['packaging', 'shipping_inquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Kandippa bro! Romba safe ah double-box pani dhaan pack pannuvom, appodhാൻ box cr...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['packaging', 'shipping_inquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -516,7 +516,7 @@
 ### Failure 46: TC-GOOD-079 (Delivery and order enquiries)
 - **Input**: `"Is gift wrapping available?"`
 - **Expected**: Detect intent in ['packaging', 'gifting'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: stock_check, Score: 30.0, Stage: route, Reply: Hey! Gift wrapping options kooda iruku bro. Ungaluku oru special occasion ku gif...
+- **Actual**: Intent: stock_check, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'stock_check' expected '['packaging', 'gifting']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -527,7 +527,7 @@
 ### Failure 47: TC-GOOD-080 (Delivery and order enquiries)
 - **Input**: `"Can you send the order directly to the recipient?"`
 - **Expected**: Detect intent in ['shipping_inquiry', 'gifting'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey bro! Kandippa anuppalam, athula enna iruku. Gift aah kudukureengala illana v...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['shipping_inquiry', 'gifting']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -538,9 +538,7 @@
 ### Failure 48: TC-GOOD-081 (Purchase-intent enquiries)
 - **Input**: `"I would like to order one. What should I do?"`
 - **Expected**: Detect intent in ['purchase_intent', 'order_inquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Awesome! I would love to help you get your pair sorted out. 
-
-Which shoe and wha...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['purchase_intent', 'order_inquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -562,9 +560,9 @@ Which shoe and wha...
 ### Failure 50: TC-GOOD-083 (Purchase-intent enquiries)
 - **Input**: `"How do I place an order?"`
 - **Expected**: Detect intent in ['purchase_intent', 'order_inquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey! Order place karna bohot hi simple hai. 
-
-Pehle mujhe yeh batao ki aapko kau...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Order Summary:
+-----------------------------------------
+Item:        StrideAir ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['purchase_intent', 'order_inquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -575,9 +573,7 @@ Pehle mujhe yeh batao ki aapko kau...
 ### Failure 51: TC-GOOD-084 (Purchase-intent enquiries)
 - **Input**: `"Can you help me order this product?"`
 - **Expected**: Detect intent in ['purchase_intent', 'order_inquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Order Summary:
------------------------------------------
-Item:        StrideAir ...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey Customer, welcome to Starboyz! What kind of shoes are you looking for today?...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['purchase_intent', 'order_inquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -588,7 +584,7 @@ Item:        StrideAir ...
 ### Failure 52: TC-GOOD-085 (Purchase-intent enquiries)
 - **Input**: `"I need two of these. How can I purchase them?"`
 - **Expected**: Detect intent in ['purchase_intent', 'order_inquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey bro! Starboyz la ungaluku edhu pudichiruku nu sonneenga na romba use-ah iruk...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['purchase_intent', 'order_inquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -599,7 +595,7 @@ Item:        StrideAir ...
 ### Failure 53: TC-GOOD-086 (Purchase-intent enquiries)
 - **Input**: `"I'd like to buy this in pink."`
 - **Expected**: Detect intent in ['purchase_intent', 'variant_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey bro! Starboyz la pink color shoes ithuvarai stock varala. Ennoda catalog la ...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey Customer, welcome to Starboyz! What kind of shoes are you looking for today?...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['purchase_intent', 'variant_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -610,7 +606,7 @@ Item:        StrideAir ...
 ### Failure 54: TC-GOOD-087 (Purchase-intent enquiries)
 - **Input**: `"I want 5 pieces for an event. Can you help me?"`
 - **Expected**: Detect intent in ['purchase_intent', 'bulk_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey bro! Kandippa help panren. Eventku ethu madhiri shoes thedureenga? Casual sn...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['purchase_intent', 'bulk_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -621,7 +617,7 @@ Item:        StrideAir ...
 ### Failure 55: TC-GOOD-088 (Purchase-intent enquiries)
 - **Input**: `"I want to place a bulk order. Whom should I contact?"`
 - **Expected**: Detect intent in ['bulk_query', 'purchase_intent'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey bro! Starboyz la bulk order eduthu tharuvom. Unaku evlo pairs venum, enna mo...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['bulk_query', 'purchase_intent']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -632,9 +628,7 @@ Item:        StrideAir ...
 ### Failure 56: TC-GOOD-089 (Purchase-intent enquiries)
 - **Input**: `"I'm ready to order. What details do you need?"`
 - **Expected**: Detect intent in ['purchase_intent', 'checkout_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey! Awesome choice, glad you found what you were looking for. 
-
-To get your ord...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['purchase_intent', 'checkout_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -645,7 +639,7 @@ To get your ord...
 ### Failure 57: TC-GOOD-090 (Purchase-intent enquiries)
 - **Input**: `"Can you reserve one for me?"`
 - **Expected**: Detect intent in ['reservation_query', 'purchase_intent'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey! Katchithamaa reserve pannalaam bro. Entha shoe-ku reservation thevai? Athod...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['reservation_query', 'purchase_intent']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -656,7 +650,7 @@ To get your ord...
 ### Failure 58: TC-GOOD-091 (Purchase-intent enquiries)
 - **Input**: `"Is there anything I need to know before ordering?"`
 - **Expected**: Detect intent in ['general_query', 'policy_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey bro! Good question. Ordering from Starboyz is super simple and transparent. ...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey Customer, welcome to Starboyz! What kind of shoes are you looking for today?...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['general_query', 'policy_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -667,7 +661,7 @@ To get your ord...
 ### Failure 59: TC-GOOD-092 (Purchase-intent enquiries)
 - **Input**: `"Can you confirm whether I can order this today?"`
 - **Expected**: Detect intent in ['purchase_intent', 'stock_check'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 60.0, Stage: route, Reply: Hey! Definitely, you can order today. Since you are asking about availability, c...
+- **Actual**: Intent: product_enquiry, Score: 60.0, Stage: route, Reply: Hey Customer, welcome to Starboyz! What kind of shoes are you looking for today?...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['purchase_intent', 'stock_check']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -736,7 +730,7 @@ Order ...
 ### Failure 65: TC-DIFF-006 (Extremely short / incomplete)
 - **Input**: `"delivery"`
 - **Expected**: Detect intent in ['shipping_inquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey! Apka order ya delivery status check karna hai kya? Agar aapne koi order pla...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey! Are you asking about the delivery time for a new order, or do you have an e...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['shipping_inquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -747,7 +741,7 @@ Order ...
 ### Failure 66: TC-DIFF-007 (Extremely short / incomplete)
 - **Input**: `"want this"`
 - **Expected**: Detect intent in ['purchase_intent', 'product_enquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: greeting, Score: 30.0, Stage: route, Reply: Hey! Glad you found something you like. To help you out, could you tell me which...
+- **Actual**: Intent: greeting, Score: 30.0, Stage: route, Reply: Hey! I am happy to help you out with that, but I am not sure which pair you are ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'greeting' expected '['purchase_intent', 'product_enquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -796,7 +790,7 @@ Order ...
 ### Failure 70: TC-DIFF-013 (Extremely short / incomplete)
 - **Input**: `"where"`
 - **Expected**: Detect intent in ['location_query', 'general_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey! Are you looking for our store location? We are located at Starboyz Flagship...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['location_query', 'general_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -807,7 +801,7 @@ Order ...
 ### Failure 71: TC-DIFF-015 (Extremely short / incomplete)
 - **Input**: `"how"`
 - **Expected**: Detect intent in ['general_query', 'order_inquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey! How can I help you out today? Are you looking for some new shoes for runnin...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['general_query', 'order_inquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -818,7 +812,7 @@ Order ...
 ### Failure 72: TC-DIFF-019 (Extremely short / incomplete)
 - **Input**: `"this?"`
 - **Expected**: Detect intent in ['product_enquiry', 'general_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: greeting, Score: 30.0, Stage: route, Reply: Hey Customer, welcome to Starboyz! What kind of shoes are you looking for today?...
+- **Actual**: Intent: greeting, Score: 30.0, Stage: route, Reply: Hey! You just sent "this" but I do not see an image or a link attached to your m...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'greeting' expected '['product_enquiry', 'general_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -829,7 +823,7 @@ Order ...
 ### Failure 73: TC-DIFF-020 (Extremely short / incomplete)
 - **Input**: `"send"`
 - **Expected**: Detect intent in ['general_query', 'shipping_inquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey! Looks like you might have hit send a bit too early. Were you looking to che...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['general_query', 'shipping_inquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -873,9 +867,7 @@ Order ...
 ### Failure 77: TC-DIFF-030 (Broken / unclear English)
 - **Input**: `"how many days coming"`
 - **Expected**: Detect intent in ['shipping_inquiry', 'timeline_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Order Summary:
------------------------------------------
-Item:        StrideAir ...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['shipping_inquiry', 'timeline_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -977,7 +969,7 @@ Order ...
 ### Failure 86: TC-DIFF-050 (Slang / casual texting)
 - **Input**: `"akka same color venum"`
 - **Expected**: Detect intent in ['variant_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Kandippa bro! Namma kitta StrideAir Zoom Casual Sneaker stock la iruku (5 pairs ...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Kandippa bro! Namma kitta StrideAir Zoom Casual Sneaker stock la iruku (2 pairs ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['variant_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -988,7 +980,7 @@ Order ...
 ### Failure 87: TC-DIFF-052 (Slang / casual texting)
 - **Input**: `"delivery enga enga?"`
 - **Expected**: Detect intent in ['shipping_inquiry', 'location_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Kandippa bro! Namma kitta StrideAir Zoom Casual Sneaker stock la iruku (5 pairs ...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Kandippa bro! Namma kitta StrideAir Zoom Casual Sneaker stock la iruku (2 pairs ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['shipping_inquiry', 'location_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -999,7 +991,7 @@ Order ...
 ### Failure 88: TC-DIFF-053 (Slang / casual texting)
 - **Input**: `"vera design iruka bro?"`
 - **Expected**: Detect intent in ['variant_query', 'product_enquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: stock_check, Score: 30.0, Stage: route, Reply: Kandippa bro! Namma kitta StrideAir Zoom Casual Sneaker stock la iruku (5 pairs ...
+- **Actual**: Intent: stock_check, Score: 30.0, Stage: route, Reply: Kandippa bro! Namma kitta StrideAir Zoom Casual Sneaker stock la iruku (2 pairs ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'stock_check' expected '['variant_query', 'product_enquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1021,7 +1013,7 @@ Order ...
 ### Failure 90: TC-DIFF-055 (Slang / casual texting)
 - **Input**: `"bro one piece kudu"`
 - **Expected**: Detect intent in ['purchase_intent'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey bro, welcome to Starboyz. Enna madhiri shoe thedureenga? Running ku ah, gym ...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['purchase_intent']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1043,7 +1035,7 @@ Order ...
 ### Failure 92: TC-DIFF-059 (Slang / casual texting)
 - **Input**: `"akka urgent venum"`
 - **Expected**: Detect intent in ['urgent_delivery', 'shipping_inquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 60.0, Stage: route, Reply: Hey bro, kandippa help panren. Enna size venum? Appram enga anupanum? Urgent na ...
+- **Actual**: Intent: product_enquiry, Score: 60.0, Stage: route, Reply: Kandippa bro! Namma kitta StrideAir Zoom Casual Sneaker stock la iruku (2 pairs ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['urgent_delivery', 'shipping_inquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1054,7 +1046,7 @@ Order ...
 ### Failure 93: TC-DIFF-062 (Contradictory / ambiguous)
 - **Input**: `"Give me the cheapest expensive option."`
 - **Expected**: Detect intent in ['product_enquiry', 'pricing'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: request_discount, Score: 30.0, Stage: route, Reply: Haha, antha maari oru tricky kelvi ketturkardhu. Neenga oru premium feel venum, ...
+- **Actual**: Intent: request_discount, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'request_discount' expected '['product_enquiry', 'pricing']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1065,7 +1057,7 @@ Order ...
 ### Failure 94: TC-DIFF-063 (Contradictory / ambiguous)
 - **Input**: `"I need 1 or maybe 10, tell me both."`
 - **Expected**: Detect intent in ['pricing', 'bulk_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Arre bhai, 1 pair chahiye ya 10 pairs bulk mein? Agar personal use ke liye ek pa...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['pricing', 'bulk_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1076,7 +1068,7 @@ Order ...
 ### Failure 95: TC-DIFF-064 (Contradictory / ambiguous)
 - **Input**: `"I want blue, but don't send blue."`
 - **Expected**: Detect intent in ['variant_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey! Ha ha, adhu enna twist bro? Blue venum aana blue anuppa koodaadhu nu solree...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['variant_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1087,7 +1079,7 @@ Order ...
 ### Failure 96: TC-DIFF-065 (Contradictory / ambiguous)
 - **Input**: `"I need it today but I'm okay with next week."`
 - **Expected**: Detect intent in ['shipping_inquiry', 'timeline_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 60.0, Stage: route, Reply: Hey bro, puriyala... emergency ah odaney venuma illana next week vandhaalum ok v...
+- **Actual**: Intent: product_enquiry, Score: 60.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['shipping_inquiry', 'timeline_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1098,7 +1090,7 @@ Order ...
 ### Failure 97: TC-DIFF-066 (Contradictory / ambiguous)
 - **Input**: `"I want a customized product but I don't want customization."`
 - **Expected**: Detect intent in ['customization_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey! Thoda confusing lag raha hai bhai. Aapko custom design chahiye ya ekdum rea...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['customization_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1109,7 +1101,7 @@ Order ...
 ### Failure 98: TC-DIFF-068 (Contradictory / ambiguous)
 - **Input**: `"I need something small but also large."`
 - **Expected**: Detect intent in ['variant_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey bro, thooku madhiri pesuringale! Shoes la small and large na enna artham? Il...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey Customer, welcome to Starboyz! What kind of shoes are you looking for today?...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['variant_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1133,7 +1125,7 @@ Item:        StrideAir ...
 ### Failure 100: TC-DIFF-073 (Contradictory / ambiguous)
 - **Input**: `"I want a cheap one but it should be premium."`
 - **Expected**: Detect intent in ['product_enquiry', 'pricing'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: request_discount, Score: 30.0, Stage: route, Reply: Hey bro! Totally get it, premium look and feel venum but budget-friendly ah iruk...
+- **Actual**: Intent: request_discount, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'request_discount' expected '['product_enquiry', 'pricing']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1144,7 +1136,7 @@ Item:        StrideAir ...
 ### Failure 101: TC-DIFF-074 (Contradictory / ambiguous)
 - **Input**: `"I need something for everyone."`
 - **Expected**: Detect intent in ['product_enquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: greeting, Score: 30.0, Stage: route, Reply: Hey! Everyone ku na, family ya friends ellaarkum serthu podura maadhiri shoes th...
+- **Actual**: Intent: greeting, Score: 30.0, Stage: route, Reply: Hey Customer, welcome to Starboyz! What kind of shoes are you looking for today?...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'greeting' expected '['product_enquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1155,7 +1147,7 @@ Item:        StrideAir ...
 ### Failure 102: TC-DIFF-077 (Contradictory / ambiguous)
 - **Input**: `"I need delivery tomorrow, but I haven't given my address."`
 - **Expected**: Detect intent in ['shipping_inquiry'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 60.0, Stage: route, Reply: Hey bro! No problem at all, just send me your Full Name, complete Delivery Addre...
+- **Actual**: Intent: product_enquiry, Score: 60.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['shipping_inquiry']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1177,7 +1169,7 @@ Item:        StrideAir ...
 ### Failure 104: TC-DIFF-083 (Price negotiation / pressure)
 - **Input**: `"Nobody will pay this price."`
 - **Expected**: Detect intent in ['objection_price', 'pricing'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: I understand where you are coming from. It can be frustrating to see high prices...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey Customer, welcome to Starboyz! What kind of shoes are you looking for today?...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['objection_price', 'pricing']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1188,7 +1180,7 @@ Item:        StrideAir ...
 ### Failure 105: TC-DIFF-084 (Price negotiation / pressure)
 - **Input**: `"Your competitor is selling cheaper."`
 - **Expected**: Detect intent in ['objection_price', 'competitor_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: request_discount, Score: 30.0, Stage: route, Reply: I hear you bro. Market rate check pannum podhu konjam difference irukalam. But S...
+- **Actual**: Intent: request_discount, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'request_discount' expected '['objection_price', 'competitor_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1213,7 +1205,7 @@ Order ...
 ### Failure 107: TC-DIFF-088 (Price negotiation / pressure)
 - **Input**: `"I want 20 pieces at the price of one."`
 - **Expected**: Detect intent in ['request_discount', 'bulk_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: pricing, Score: 30.0, Stage: route, Reply: Hey there. That sounds like a pretty big order for a team or a bulk requirement....
+- **Actual**: Intent: pricing, Score: 30.0, Stage: route, Reply: Please scan the QR code above to pay Rs. 1,499 using any UPI app. Once done, typ...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'pricing' expected '['request_discount', 'bulk_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1224,7 +1216,7 @@ Order ...
 ### Failure 108: TC-DIFF-090 (Price negotiation / pressure)
 - **Input**: `"If you don't reduce the price I'm leaving."`
 - **Expected**: Detect intent in ['objection_price', 'request_discount'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: pricing, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
+- **Actual**: Intent: pricing, Score: 30.0, Stage: route, Reply: Waiting for payment confirmation. Please reply 'PAID' or 'DONE' once you have tr...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'pricing' expected '['objection_price', 'request_discount']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1235,7 +1227,7 @@ Order ...
 ### Failure 109: TC-DIFF-091 (Price negotiation / pressure)
 - **Input**: `"I'll buy everything if you give me wholesale price."`
 - **Expected**: Detect intent in ['bulk_query', 'request_discount'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Great choice. Let's get your order placed for StrideAir Zoom Casual Sneaker (UK ...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Waiting for payment confirmation. Please reply 'PAID' or 'DONE' once you have tr...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['bulk_query', 'request_discount']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1246,7 +1238,7 @@ Order ...
 ### Failure 110: TC-DIFF-092 (Price negotiation / pressure)
 - **Input**: `"Can you make it free for me?"`
 - **Expected**: Detect intent in ['request_discount', 'unreasonable'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Waiting for payment confirmation. Please reply 'PAID' or 'DONE' once you have tr...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['request_discount', 'unreasonable']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1257,9 +1249,7 @@ Order ...
 ### Failure 111: TC-DIFF-093 (Price negotiation / pressure)
 - **Input**: `"Why is this so expensive?"`
 - **Expected**: Detect intent in ['pricing', 'objection_price'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: greeting, Score: 30.0, Stage: route, Reply: Order Summary:
------------------------------------------
-Item:        StrideAir ...
+- **Actual**: Intent: greeting, Score: 30.0, Stage: route, Reply: Waiting for payment confirmation. Please reply 'PAID' or 'DONE' once you have tr...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'greeting' expected '['pricing', 'objection_price']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1270,7 +1260,7 @@ Item:        StrideAir ...
 ### Failure 112: TC-DIFF-094 (Price negotiation / pressure)
 - **Input**: `"Price is too high bro."`
 - **Expected**: Detect intent in ['objection_price', 'pricing'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey Customer, welcome to Starboyz! What kind of shoes are you looking for today?...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Waiting for payment confirmation. Please reply 'PAID' or 'DONE' once you have tr...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['objection_price', 'pricing']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1281,7 +1271,7 @@ Item:        StrideAir ...
 ### Failure 113: TC-DIFF-095 (Price negotiation / pressure)
 - **Input**: `"I saw it cheaper somewhere else."`
 - **Expected**: Detect intent in ['objection_price', 'competitor_query'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: request_discount, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
+- **Actual**: Intent: request_discount, Score: 30.0, Stage: route, Reply: Waiting for payment confirmation. Please reply 'PAID' or 'DONE' once you have tr...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'request_discount' expected '['objection_price', 'competitor_query']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1292,7 +1282,7 @@ Item:        StrideAir ...
 ### Failure 114: TC-DIFF-097 (Price negotiation / pressure)
 - **Input**: `"What is your best deal?"`
 - **Expected**: Detect intent in ['pricing', 'offers'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Waiting for payment confirmation. Please reply 'PAID' or 'DONE' once you have tr...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['pricing', 'offers']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1303,7 +1293,7 @@ Item:        StrideAir ...
 ### Failure 115: TC-DIFF-098 (Price negotiation / pressure)
 - **Input**: `"Make the price less and I'll order immediately."`
 - **Expected**: Detect intent in ['request_discount', 'purchase_intent'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: pricing, Score: 60.0, Stage: route, Reply: The StrideAir Zoom Casual Sneaker is available for ₹1,299.00 with fast doorstep ...
+- **Actual**: Intent: pricing, Score: 60.0, Stage: route, Reply: Waiting for payment confirmation. Please reply 'PAID' or 'DONE' once you have tr...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'pricing' expected '['request_discount', 'purchase_intent']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
@@ -1314,7 +1304,7 @@ Item:        StrideAir ...
 ### Failure 116: TC-DIFF-099 (Price negotiation / pressure)
 - **Input**: `"Can you somehow reduce the shipping charge?"`
 - **Expected**: Detect intent in ['shipping_inquiry', 'request_discount'], ground against Firestore catalog, no emojis
-- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Hey Customer, welcome to Starboyz! What kind of shoes are you looking for today?...
+- **Actual**: Intent: product_enquiry, Score: 30.0, Stage: route, Reply: Waiting for payment confirmation. Please reply 'PAID' or 'DONE' once you have tr...
 - **Severity**: `MEDIUM`
 - **Reason**: Intent mismatch: detected 'product_enquiry' expected '['shipping_inquiry', 'request_discount']'
 - **Root Cause**: Ambiguity in single-word or highly compressed customer query.
