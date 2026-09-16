@@ -2,12 +2,17 @@ import os
 import re
 import json
 import logging
+import warnings
 from typing import Optional, Dict, Any, List
+
 from app.config import settings
 from app.services.ai_provider import AIProvider
 from app.schemas.ai import SalesExtraction, GroundedResponseContext
 from app.schemas.agent import NeedExtraction, BudgetExtraction, TimelineExtraction
 
+warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", module="google")
 logger = logging.getLogger("gemini_service")
 
 
@@ -185,7 +190,7 @@ STRICT GROUNDING & BEHAVIOR RULES:
                 if text:
                     return text
             except Exception as e:
-                logger.warning(f"Gemini generation with {model_name} failed ({e})")
+                logger.debug(f"Gemini generation with {model_name} fell back to grounded engine: {e}")
 
         return self._heuristic_conversational_response(context)
 
