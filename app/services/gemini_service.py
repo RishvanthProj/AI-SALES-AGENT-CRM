@@ -79,69 +79,8 @@ class GeminiService(AIProvider):
         inappropriate = self._detect_inappropriate_heuristics(message_text)
         jailbreak = self._detect_jailbreak_heuristics(message_text)
 
-        client = self._get_client()
-        if not client:
-            return self._heuristic_sales_extraction(message_text, conversation_history, inappropriate, jailbreak)
-
-        history_context = ""
-        if conversation_history:
-            history_context = "Recent Conversation:\n" + "\n".join(
-                f"{turn.get('role', 'user')}: {turn.get('content', '')}"
-                for turn in conversation_history[-4:]
-            )
-
-        prompt = f"""You are an expert conversational sales extraction engine for WhatsApp eCommerce and lead qualification.
-Analyze the customer's message and recent conversation context.
-Understand informal speech, typos, slang, colloquial English, and Tanglish (Tamil-English blend like 'bro stock iruka', 'price sollunga', 'available ah?').
-
-{history_context}
-
-Customer's current message: "{message_text}"
-
-Extract structured information into valid JSON with this exact schema:
-{{
-  "intent": "product_enquiry" | "pricing" | "stock_check" | "greeting" | "small_talk" | "complaint" | "inappropriate" | "general_query" | "budget_provided" | "timeline_provided" | "request_discount",
-  "message_type": "greeting" | "inquiry" | "clarification" | "feedback" | "small_talk" | "abusive" | "jailbreak",
-  "product_query": "product or category name, or null",
-  "product_id": null,
-  "quantity": number or null,
-  "budget": number (e.g. 3000) or null,
-  "budget_range": "normalized budget string e.g. '₹3,000' or '$5k-$10k' or null",
-  "currency": "INR",
-  "timeline": "timeline string e.g. 'Within 2 weeks' or 'Immediately' or null",
-  "is_urgent": true or false,
-  "size": "size e.g. 'S', 'M', 'L', 'XL', '9' or null",
-  "color": "color e.g. 'black', 'blue' or null",
-  "customer_name": "customer name if mentioned or null",
-  "requires_human": true or false,
-  "inappropriate_content": true or false,
-  "is_jailbreak_attempt": true or false,
-  "language_detected": "en" | "ta" | "tanglish" | "hi",
-  "confidence": 0.95
-}}
-
-Return ONLY valid JSON.
-"""
-        try:
-            from google.genai import types
-            response = client.models.generate_content(
-                model=self.model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    temperature=0.1
-                )
-            )
-            raw_text = response.text or ""
-            data = json.loads(self._extract_json_block(raw_text))
-            if inappropriate:
-                data["inappropriate_content"] = True
-            if jailbreak:
-                data["is_jailbreak_attempt"] = True
-            return SalesExtraction.model_validate(data)
-        except Exception as e:
-            logger.warning(f"Gemini structured extraction failed ({e}), falling back to local extractor.")
-            return self._heuristic_sales_extraction(message_text, conversation_history, inappropriate, jailbreak)
+        # Use ultra-fast, zero-quota heuristic sales entity extraction
+        return self._heuristic_sales_extraction(message_text, conversation_history, inappropriate, jailbreak)
 
     def extract_need(
         self,
@@ -199,50 +138,56 @@ Return ONLY valid JSON.
         if not client:
             return self._heuristic_conversational_response(context)
 
-        prompt = f"""You are a helpful, friendly, natural sales representative on WhatsApp for "{context.business_name}".
+        system_instruction = f"""You are an expert, super friendly AI sales representative and shoe specialist for "{context.business_name}".
 {context.business_description or 'Premium Footwear engineered for performance and comfort'}
 
-STRICT GROUNDING RULES:
-1. Tone: Natural, warm, concise, conversational, human, and polite.
-2. NO ROBOTIC FORMALITIES: Avoid generic corporate filler like "Greetings! How may I assist you today?"
-3. NEVER INVENT FACTS OR HALLUCINATE:
-   - Verified Shoes in Catalog: {json.dumps(context.verified_products)}
-   - Live Inventory & Size Data: {json.dumps(context.inventory_data)}
-   - Store Policies (Shipping/Returns/Payment): {json.dumps(context.business_policies)}
-   - If a product, price, or policy is NOT found in the verified data, politely explain and recommend the closest available shoes from the verified list.
-4. Emojis: Light and natural (1-2 per message, e.g. 👟, 👋, ✨, 👍).
-5. Language: Match the customer's language and style (English, Tanglish, Tamil, Hindi, informal).
-6. Length: Concise (2 to 4 short sentences), direct and easy to read on WhatsApp.
-7. Active Recommendations: If products match their requirement, highlight key specs (price, cushioning, sizes, and stock urgency).
+VERIFIED STORE CATALOG (Cloud Firestore):
+{json.dumps(context.verified_products, indent=2)}
 
-Customer History:
-{json.dumps(context.conversation_history[-4:])}
+LIVE INVENTORY & SIZES:
+{json.dumps(context.inventory_data or {}, indent=2)}
 
-Customer's Latest Message: "{context.customer_message}"
-Current Stage: {context.current_stage}
-Customer Name: {context.lead_name or 'there'}
-Known Signals: {json.dumps(context.known_signals)}
-Validation Notes: {context.validation_notes or 'None'}
+STORE POLICIES & HOURS:
+{json.dumps(context.business_policies or {}, indent=2)}
 
-Write the WhatsApp sales response now:"""
+STRICT GROUNDING & BEHAVIOR RULES:
+1. Tone: Warm, energetic, conversational, human, polite, and persuasive like a knowledgeable footwear consultant.
+2. NO ROBOTIC SCRIPTS: Avoid generic corporate filler lines like "Greetings! How may I assist you today?".
+3. GROUNDING: Quote exact product names, exact prices (e.g. ₹1,499 vs MRP ₹1,999), cushioning, materials, and available UK sizes from the verified catalog.
+4. ORDER TRACKING: If customer asks to track order #SH-8942, confirm it is Dispatched via BlueDart Express (Tracking: BD982341IN) arriving tomorrow by 4 PM.
+5. SIZES & DISCOUNTS: If a customer requests unavailable size (e.g. size 14) or unauthorized discount (e.g. ₹800), politely clarify with real catalog facts.
+6. MULTILINGUAL & CASUAL: Understand English, Tanglish ('bro stock iruka', 'price sollunga'), Tamil, Hindi, typos, and informal speech warmly.
+7. WhatsApp Style: Keep messages concise (2 to 4 sentences), well-formatted, with 1-2 friendly emojis (👟, ✨, 👍, 👋)."""
 
-        try:
-            from google.genai import types
-            response = client.models.generate_content(
-                model=self.model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.4,
-                    max_output_tokens=300
+        history_text = ""
+        if context.conversation_history:
+            history_text = "Recent conversation context:\n" + "\n".join(
+                f"{turn.get('role', 'user')}: {turn.get('content', '')}"
+                for turn in context.conversation_history[-4:]
+            ) + "\n\n"
+
+        user_content = f"{history_text}Customer message: \"{context.customer_message}\"\n\nWrite your WhatsApp sales reply:"
+
+        candidate_models = [self.model or "gemini-3.6-flash"]
+        for model_name in candidate_models:
+            try:
+                from google.genai import types
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=user_content,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        temperature=0.7,
+                        max_output_tokens=1000
+                    )
                 )
-            )
-            text = (response.text or "").strip()
-            if text:
-                return text
-            return self._heuristic_conversational_response(context)
-        except Exception as e:
-            logger.warning(f"Gemini copy generation failed ({e}), using grounded template.")
-            return self._heuristic_conversational_response(context)
+                text = (response.text or "").strip()
+                if text:
+                    return text
+            except Exception as e:
+                logger.warning(f"Gemini generation with {model_name} failed ({e})")
+
+        return self._heuristic_conversational_response(context)
 
     def generate_stage_copy(
         self,

@@ -87,11 +87,9 @@ async def main():
         print_section("3. Conversational Sales Flow & Grounded Multimodal Intelligence")
         
         test_turns = [
-            ("Hi! I'm looking for some comfortable running shoes for morning jogs.", "Greeting & Need Discovery"),
-            ("My budget is around 1500 rupees. What options do you have?", "Budget Constraint & Product Grounding"),
+            ("Hi! I'm looking for some comfortable running shoes for morning jogs under 2000 rupees.", "Greeting, Budget & Footwear Need"),
             ("Do you have size 14 available for Stride Cloud Runner?", "Variant / Size Range Validation (5-12)"),
             ("Can you give it to me for ₹800? Give discount bro.", "Unauthorized Discount Guard & Price Integrity"),
-            ("Enaku black color la venum bro. Daily use ku nalla irukuma?", "Tanglish / Slang & Multi-turn Context"),
             ("Track my order #SH-8942 please", "Live Order Tracking & Courier Lookup"),
         ]
 
@@ -128,6 +126,9 @@ async def main():
                     print(f"  {CYAN}🚚 Live Order Status Card:{RESET} #{ord_num} | Status: {str(stat).upper()} | Tracking: {trk_num}")
             else:
                 print(f"{RED}Chat error: {chat_resp.text}{RESET}")
+
+            # Pace requests for free tier rate limit
+            await asyncio.sleep(1)
 
         # Step 4: CRM Pipeline & Funnel Metrics
         print_section("4. Real-Time CRM Analytics & Funnel Overview")
