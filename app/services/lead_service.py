@@ -3,6 +3,7 @@ from typing import Optional, Dict, Any, List, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.models import Lead, Conversation
+from app.services.firebase_service import firebase_service
 
 
 class InvalidStageTransitionError(ValueError):
@@ -33,6 +34,7 @@ class LeadService:
         """
         Looks up an existing lead for the given contact number within the tenant's RLS scope,
         or creates a new lead initialized in the 'greet' stage.
+        Synchronizes customer profile with Firestore.
         """
         stmt = select(Lead).where(
             Lead.tenant_id == tenant_id,
@@ -40,6 +42,13 @@ class LeadService:
         )
         result = await session.execute(stmt)
         lead = result.scalar_one_or_none()
+
+        # Sync customer in Firebase (Single Source of Truth)
+        firebase_service.get_or_create_customer(
+            business_id=str(tenant_id),
+            phone_number=contact_number,
+            name=name
+        )
 
         if lead:
             if name and not lead.name:
@@ -58,6 +67,19 @@ class LeadService:
         )
         session.add(lead)
         await session.flush()
+
+        # Save initial lead state in Firebase
+        firebase_service.save_lead_state(
+            business_id=str(tenant_id),
+            lead_id=str(lead.id),
+            lead_data={
+                "contact_number": contact_number,
+                "name": name,
+                "stage": "greet",
+                "qualification_score": 0.0
+            }
+        )
+
         return lead, True
 
     @staticmethod
@@ -89,7 +111,7 @@ class LeadService:
         route_destination: Optional[str] = None
     ) -> Lead:
         """
-        Applies a validated stage transition to the lead.
+        Applies a validated stage transition to the lead and synchronizes with Firebase.
         """
         # Validate constraints before applying
         LeadService.validate_stage_transition(lead, new_stage, budget_signal)
@@ -106,6 +128,20 @@ class LeadService:
             lead.route_destination = route_destination
 
         await session.flush()
+
+        # Sync state transition to Firebase
+        firebase_service.save_lead_state(
+            business_id=str(lead.tenant_id),
+            lead_id=str(lead.id),
+            lead_data={
+                "stage": new_stage,
+                "budget_signal": lead.budget_signal,
+                "timeline_signal": lead.timeline_signal,
+                "qualification_score": float(lead.qualification_score or 0.0),
+                "route_destination": lead.route_destination
+            }
+        )
+
         return lead
 
     @staticmethod
@@ -119,7 +155,7 @@ class LeadService:
         raw_payload: Optional[Dict[str, Any]] = None
     ) -> Conversation:
         """
-        Persists a conversation message turn into the database.
+        Persists a conversation message turn into the database and syncs to Firebase.
         """
         conversation = Conversation(
             id=uuid.uuid4(),
@@ -132,5 +168,15 @@ class LeadService:
         )
         session.add(conversation)
         await session.flush()
-        return conversation
 
+        # Sync to Firebase
+        firebase_service.record_conversation_message(
+            business_id=str(tenant_id),
+            customer_id=str(lead_id),
+            role=role,
+            content=content,
+            whatsapp_message_id=whatsapp_message_id,
+            raw_payload=raw_payload
+        )
+
+        return conversation

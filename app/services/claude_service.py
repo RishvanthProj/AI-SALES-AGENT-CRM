@@ -3,19 +3,41 @@ import re
 from typing import Optional, Dict, Any, List
 import anthropic
 from app.config import settings
-from app.schemas.agent import NeedExtraction, BudgetExtraction, TimelineExtraction, NodeLanguageOutput
+from app.services.ai_provider import AIProvider
+from app.schemas.ai import SalesExtraction, GroundedResponseContext
+from app.schemas.agent import NeedExtraction, BudgetExtraction, TimelineExtraction
 
 
-class ClaudeService:
+class ClaudeService(AIProvider):
+    """
+    Claude API Service (Compatibility Provider).
+    Implements the AIProvider interface.
+    """
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or settings.ANTHROPIC_API_KEY
         self.model = settings.CLAUDE_MODEL
         self.client = anthropic.Anthropic(api_key=self.api_key) if self.api_key and self.api_key.startswith("sk-") else None
 
+    def extract_sales_signals(
+        self,
+        message_text: str,
+        conversation_history: List[Dict[str, str]]
+    ) -> SalesExtraction:
+        need = self.extract_need(message_text, conversation_history)
+        budget = self.extract_budget(message_text)
+        timeline = self.extract_timeline(message_text)
+
+        return SalesExtraction(
+            intent=need.category or "general_query",
+            product_query=need.summary,
+            budget=float(re.sub(r'[^\d.]', '', budget.budget_range)) if (budget.budget_range and re.search(r'\d', budget.budget_range)) else None,
+            budget_range=budget.budget_range,
+            timeline=timeline.timeline_str,
+            is_urgent=timeline.is_urgent,
+            confidence=0.85
+        )
+
     def extract_need(self, message_text: str, conversation_history: List[Dict[str, str]]) -> NeedExtraction:
-        """
-        Extracts customer need and problem definition from conversation text.
-        """
         if not self.client:
             return NeedExtraction(
                 summary=message_text.strip() or "General inquiry",
@@ -52,10 +74,6 @@ Return JSON matching this schema:
             )
 
     def extract_budget(self, message_text: str) -> BudgetExtraction:
-        """
-        Extracts structured budget signal (amount/range) from message text.
-        """
-        # Fast regex fallback for common budget patterns
         budget_pattern = re.search(r'(\$?\s?\d+[\d,.]*\s?(?:k|kilo|usd|eur|dollars|inr)?(?:\s?-\s?\$?\s?\d+[\d,.]*\s?(?:k|kilo|usd|eur|dollars|inr)?)?)', message_text, re.IGNORECASE)
 
         if not self.client:
@@ -100,9 +118,6 @@ Return JSON matching:
             )
 
     def extract_timeline(self, message_text: str) -> TimelineExtraction:
-        """
-        Extracts timeline requirement signal from message text.
-        """
         if not self.client:
             urgent_keywords = ["urgent", "asap", "immediately", "today", "tomorrow", "this week"]
             is_urgent = any(w in message_text.lower() for w in urgent_keywords)
@@ -146,6 +161,14 @@ Return JSON matching:
                 confidence=0.75
             )
 
+    def generate_conversational_response(self, context: GroundedResponseContext) -> str:
+        return self.generate_stage_copy(
+            current_stage=context.current_stage,
+            lead_name=context.lead_name,
+            conversation_history=context.conversation_history,
+            extracted_signals=context.known_signals
+        )
+
     def generate_stage_copy(
         self,
         current_stage: str,
@@ -153,10 +176,6 @@ Return JSON matching:
         conversation_history: List[Dict[str, str]],
         extracted_signals: Dict[str, Any]
     ) -> str:
-        """
-        Generates natural conversational copy for the current node stage.
-        The LLM only generates the text matching the node's specific purpose.
-        """
         stage_instructions = {
             "greet": "Welcome the customer warmly, introduce our service, and ask how we can help them today.",
             "qualify": "Acknowledge their interest and ask 1 clarifying question to understand their primary requirement or goal.",
@@ -169,7 +188,6 @@ Return JSON matching:
         instruction = stage_instructions.get(current_stage, "Provide a helpful, polite WhatsApp sales response.")
 
         if not self.client:
-            # Deterministic clean fallback templates
             templates = {
                 "greet": f"Hello {lead_name or 'there'}! 👋 Welcome to our sales team. How can we help you achieve your goals today?",
                 "qualify": "Thanks for reaching out! Could you share a bit more about the specific features or solution you are looking for?",
@@ -213,4 +231,5 @@ Do NOT decide stage progression. Only write the message content.
         return text
 
 
+# Singleton Instance
 claude_service = ClaudeService()

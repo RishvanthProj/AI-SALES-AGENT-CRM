@@ -6,11 +6,27 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"
 
-    # Claude API Configuration (Server-Side ONLY)
+    # AI Provider Selection ("gemini" or "claude")
+    AI_PROVIDER: str = "gemini"
+
+    # Google Gemini API Configuration (Server-Side ONLY)
+    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODEL: str = "gemini-2.5-flash"
+
+    # Claude API Configuration (Compatibility fallback, Server-Side ONLY)
     ANTHROPIC_API_KEY: Optional[str] = None
     CLAUDE_MODEL: str = "claude-3-5-sonnet-20241022"
 
-    # Database Configuration (PostgreSQL with RLS)
+    # Firebase / Firestore Configuration (Single Source of Truth)
+    FIREBASE_PROJECT_ID: Optional[str] = None
+    FIREBASE_CLIENT_EMAIL: Optional[str] = None
+    FIREBASE_PRIVATE_KEY: Optional[str] = None
+    FIREBASE_CREDENTIALS_PATH: Optional[str] = None
+    FIRESTORE_DATABASE_ID: str = "(default)"
+    USE_FIREBASE_EMULATOR: bool = False
+    FIRESTORE_EMULATOR_HOST: Optional[str] = None
+
+    # Database Configuration (PostgreSQL with RLS / Multi-tenant metadata)
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/whatsapp_sales_db"
     DATABASE_URL_SYNC: str = "postgresql://postgres:postgres@localhost:5432/whatsapp_sales_db"
 

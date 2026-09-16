@@ -1,5 +1,6 @@
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
+from app.schemas.ai import SalesExtraction, GroundedResponseContext
 
 
 class NeedExtraction(BaseModel):
@@ -10,7 +11,7 @@ class NeedExtraction(BaseModel):
 
 class BudgetExtraction(BaseModel):
     raw_text: str = Field(description="Raw text mentioning budget")
-    budget_range: Optional[str] = Field(None, description="Normalized budget range or amount, e.g. '$5k-$10k', '2000 USD'")
+    budget_range: Optional[str] = Field(None, description="Normalized budget range or amount, e.g. '$5k-$10k', '2000 USD', '3000 INR'")
     is_provided: bool = Field(description="Whether a valid budget was indicated")
     confidence: float = Field(default=0.9, description="Extraction confidence (0.0 to 1.0)")
 

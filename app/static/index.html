@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOLEVAULT — Premium Footwear Brand & Admin OS</title>
+  <meta name="description" content="SOLEVAULT - Premium footwear e-commerce brand. Discover running, sneakers, trekking, formals, and limited-edition shoes with AI-powered sales assistant.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body class="dark-theme">
+  <div id="app" class="app-layout">
+
+    <!-- Top Navigation Bar -->
+    <header class="main-navbar">
+      <div class="navbar-left">
+        <div class="brand-badge-logo" id="logo-home-btn">
+          <span class="brand-icon">⚡</span>
+          <div class="brand-info">
+            <span class="brand-title">SOLEVAULT</span>
+            <span class="brand-tagline">MOVE BETTER. LIVE BETTER.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Nav Links for Storefront -->
+      <nav class="navbar-center" id="store-nav-links">
+        <button class="nav-link active" data-target="home">Home</button>
+        <button class="nav-link" data-target="shop">Shop Footwear</button>
+        <button class="nav-link" data-target="categories">20 Categories</button>
+        <button class="nav-link" data-target="offers">Offers & Deals</button>
+        <button class="nav-link" data-target="track">Track Order</button>
+      </nav>
+
+      <!-- Right Mode Switcher & Utilities -->
+      <div class="navbar-right">
+        <!-- Search trigger -->
+        <button class="icon-btn" id="search-modal-btn" title="Search catalog">
+          <span>🔍</span>
+        </button>
+
+        <!-- Compare counter -->
+        <button class="icon-btn compare-pill" id="open-compare-btn" title="Compare shoes">
+          <span>⚖️</span>
+          <span class="badge" id="compare-counter">0</span>
+        </button>
+
+        <!-- Cart trigger -->
+        <button class="icon-btn cart-btn" id="open-cart-btn" title="View Cart">
+          <span>🛒</span>
+          <span class="badge" id="cart-counter">0</span>
+        </button>
+
+        <!-- Mode Toggle Segment -->
+        <div class="mode-switcher">
+          <button class="mode-btn active" id="mode-store-btn" title="Customer Storefront">
+            <span>👟 Store</span>
+          </button>
+          <button class="mode-btn" id="mode-admin-btn" title="Executive Admin Dashboard">
+            <span>📊 Admin</span>
+          </button>
+          <button class="mode-btn" id="mode-chat-btn" title="WhatsApp AI Sales Agent">
+            <span>💬 AI Chat</span>
+          </button>
+        </div>
+
+        <button class="icon-btn" id="theme-toggle-btn" title="Toggle Theme">
+          <span id="theme-icon">🌙</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Marquee Highlights Bar -->
+    <div class="announcement-bar">
+      <div class="marquee-content">
+        <span>🚀 <strong>FREE EXPRESS SHIPPING</strong> ON ALL ORDERS ABOVE ₹1,500 ACROSS INDIA</span>
+        <span>•</span>
+        <span>🔥 USE CODE <strong>STRIDE10</strong> FOR 10% OFF ORDERS OVER ₹1,999</span>
+        <span>•</span>
+        <span>👟 7-DAY EASY HOME RETURNS & 100% SIZE REPLACEMENT GUARANTEE</span>
+        <span>•</span>
+        <span>💳 CASH ON DELIVERY (COD) & INSTANT UPI AVAILABLE</span>
+        <span>•</span>
+        <span>✨ 20 NEW SHOE CATEGORIES NOW LIVE IN SOLEVAULT 2026 COLLECTION</span>
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 1: SOLEVAULT STOREFRONT                                        -->
+    <!-- ===================================================================== -->
+    <main class="content-container active" id="storefront-view">
+      
+      <!-- HERO BANNER -->
+      <section class="hero-section">
+        <div class="hero-backdrop"></div>
+        <div class="hero-content">
+          <div class="hero-pill">⚡ SOLEVAULT 2026 PERFORMANCE & LIFESTYLE</div>
+          <h1 class="hero-headline">Move Better.<br><span class="gradient-text">Live Better.</span></h1>
+          <p class="hero-subtext">Engineered for athletes, trendsetters, and daily walkers. Experience dual-density air cushions, curved carbon fiber propulsion plates, and bespoke Italian leather craftsmanship.</p>
+          <div class="hero-actions">
+            <button class="btn btn-primary btn-glow" id="hero-shop-all-btn">
+              <span>Explore Collection</span> ➔
+            </button>
+            <button class="btn btn-glass" id="hero-shop-running-btn">Running Pro</button>
+            <button class="btn btn-glass" id="hero-shop-sneakers-btn">Sneakers</button>
+            <button class="btn btn-glass" id="hero-shop-limited-btn">Limited Edition</button>
+          </div>
+          <div class="hero-stats">
+            <div class="stat-item">
+              <span class="stat-num">20+</span>
+              <span class="stat-lbl">Footwear Categories</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <span class="stat-num">300+</span>
+              <span class="stat-lbl">Variants & Sizes</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <span class="stat-num">4.8★</span>
+              <span class="stat-lbl">Verified Rating</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <span class="stat-num">3-Day</span>
+              <span class="stat-lbl">Express Delivery</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-shoe-showcase">
+          <div class="glow-orb"></div>
+          <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1000" alt="AeroSprint X1 Hero Shoe" class="floating-hero-shoe" id="hero-shoe-img">
+          <div class="floating-badge badge-top-right">
+            <span class="badge-tag">AeroSprint X1</span>
+            <span class="badge-price">₹4,999</span>
+          </div>
+          <div class="floating-badge badge-bottom-left">
+            <span class="badge-icon">💨</span>
+            <span class="badge-text">Carbon Air Cushion</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 20 CATEGORIES CAROUSEL -->
+      <section class="categories-bar-section" id="categories-section">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Explore 20 Shoe Categories</h2>
+            <p class="section-subtitle">Find your exact match across running, outdoor, formal, lifestyle, and limited editions.</p>
+          </div>
+          <div class="carousel-nav-arrows">
+            <button class="arrow-btn" id="cat-prev-btn">‹</button>
+            <button class="arrow-btn" id="cat-next-btn">›</button>
+          </div>
+        </div>
+        <div class="categories-carousel" id="categories-track">
+          <!-- Populated by JavaScript with all 20 categories -->
+        </div>
+      </section>
+
+      <!-- SHOP & CATALOG SECTION WITH 15+ FILTERS -->
+      <section class="shop-catalog-section" id="shop-section">
+        <div class="shop-layout">
+          
+          <!-- LEFT FILTER SIDEBAR (15+ Facets) -->
+          <aside class="filter-sidebar" id="filter-sidebar">
+            <div class="filter-header">
+              <span class="filter-title">Filters & Specifications</span>
+              <button class="btn-text" id="reset-filters-btn">Clear All</button>
+            </div>
+
+            <!-- Active Filter Chips -->
+            <div class="active-filter-chips" id="active-filter-chips"></div>
+
+            <!-- 1. Category Filter -->
+            <div class="filter-group">
+              <label class="filter-group-title">Category</label>
+              <div class="filter-options-scroll" id="category-filter-options">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+
+            <!-- 2. Gender Filter -->
+            <div class="filter-group">
+              <label class="filter-group-title">Gender / Demographic</label>
+              <div class="filter-chips-grid">
+                <button class="filter-chip-btn active" data-facet="gender" data-val="all">All</button>
+                <button class="filter-chip-btn" data-facet="gender" data-val="Men">Men</button>
+                <button class="filter-chip-btn" data-facet="gender" data-val="Women">Women</button>
+                <button class="filter-chip-btn" data-facet="gender" data-val="Kids">Kids</button>
+                <button class="filter-chip-btn" data-facet="gender" data-val="Unisex">Unisex</button>
+              </div>
+            </div>
+
+            <!-- 3. Size Filter (UK 3-12) -->
+            <div class="filter-group">
+              <div class="filter-title-row">
+                <label class="filter-group-title">Size (UK System)</label>
+                <span class="size-guide-link" id="open-size-guide-btn">Size Guide</span>
+              </div>
+              <div class="size-chips-grid" id="size-chips-filter">
+                <button class="size-btn" data-size="3">3</button>
+                <button class="size-btn" data-size="4">4</button>
+                <button class="size-btn" data-size="5">5</button>
+                <button class="size-btn" data-size="6">6</button>
+                <button class="size-btn" data-size="7">7</button>
+                <button class="size-btn active" data-size="8">8</button>
+                <button class="size-btn" data-size="9">9</button>
+                <button class="size-btn" data-size="10">10</button>
+                <button class="size-btn" data-size="11">11</button>
+                <button class="size-btn" data-size="12">12</button>
+              </div>
+            </div>
+
+            <!-- 4. Color Swatches -->
+            <div class="filter-group">
+              <label class="filter-group-title">Color Palette</label>
+              <div class="color-swatches-grid" id="color-swatches-filter">
+                <button class="color-dot-btn" style="background-color: #1a1a1a;" data-color="Black" title="Black"></button>
+                <button class="color-dot-btn" style="background-color: #ffffff; border: 1px solid #ccc;" data-color="White" title="White"></button>
+                <button class="color-dot-btn" style="background-color: #dc2626;" data-color="Red" title="Red"></button>
+                <button class="color-dot-btn" style="background-color: #1e3a8a;" data-color="Blue" title="Blue"></button>
+                <button class="color-dot-btn" style="background-color: #15803d;" data-color="Green" title="Green"></button>
+                <button class="color-dot-btn" style="background-color: #64748b;" data-color="Grey" title="Grey"></button>
+                <button class="color-dot-btn" style="background-color: #d97706;" data-color="Tan" title="Tan/Brown"></button>
+                <button class="color-dot-btn" style="background-color: #ec4899;" data-color="Pink" title="Pink"></button>
+              </div>
+            </div>
+
+            <!-- 5. Price Range Slider -->
+            <div class="filter-group">
+              <div class="filter-title-row">
+                <label class="filter-group-title">Price Range</label>
+                <span class="price-val-label" id="price-range-label">Up to ₹10,000</span>
+              </div>
+              <input type="range" class="range-slider" id="price-range-slider" min="500" max="10000" step="500" value="10000">
+            </div>
+
+            <!-- 6. Features & Technology Toggles -->
+            <div class="filter-group">
+              <label class="filter-group-title">Features & Armor</label>
+              <div class="checkbox-list">
+                <label class="custom-checkbox">
+                  <input type="checkbox" id="feat-waterproof">
+                  <span class="checkmark"></span>
+                  <span>Waterproof / Resistant</span>
+                </label>
+                <label class="custom-checkbox">
+                  <input type="checkbox" id="feat-breathable" checked>
+                  <span class="checkmark"></span>
+                  <span>Breathable Mesh</span>
+                </label>
+                <label class="custom-checkbox">
+                  <input type="checkbox" id="feat-instock">
+                  <span class="checkmark"></span>
+                  <span>In Stock Only</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 7. Collections & Badges -->
+            <div class="filter-group">
+              <label class="filter-group-title">Special Editions</label>
+              <div class="checkbox-list">
+                <label class="custom-checkbox">
+                  <input type="checkbox" id="badge-bestseller">
+                  <span class="checkmark"></span>
+                  <span>Best Sellers</span>
+                </label>
+                <label class="custom-checkbox">
+                  <input type="checkbox" id="badge-new">
+                  <span class="checkmark"></span>
+                  <span>New Arrivals</span>
+                </label>
+                <label class="custom-checkbox">
+                  <input type="checkbox" id="badge-limited">
+                  <span class="checkmark"></span>
+                  <span>Limited Edition</span>
+                </label>
+              </div>
+            </div>
+          </aside>
+
+          <!-- RIGHT PRODUCT CATALOG GRID -->
+          <div class="catalog-main">
+            <!-- Catalog Top Toolbar -->
+            <div class="catalog-toolbar">
+              <div class="toolbar-left">
+                <span class="results-count" id="catalog-results-count">Showing 20 Shoes</span>
+              </div>
+              <div class="toolbar-right">
+                <div class="sort-selector">
+                  <label for="sort-dropdown">Sort by:</label>
+                  <select id="sort-dropdown" class="select-input">
+                    <option value="recommended">Featured & Recommended</option>
+                    <option value="popular">Most Popular</option>
+                    <option value="rating">Top Customer Rated</option>
+                    <option value="price_asc">Price: Low to High</option>
+                    <option value="price_desc">Price: High to Low</option>
+                    <option value="newest">Newest Releases</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Product Grid -->
+            <div class="products-grid" id="products-grid">
+              <!-- Dynamically populated shoe cards -->
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination-bar" id="pagination-bar"></div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- OFFERS & PROMO BANNER SECTION -->
+      <section class="offers-section" id="offers-section">
+        <div class="offers-grid" id="offers-container">
+          <!-- Populated from /api/v1/store/offers -->
+        </div>
+      </section>
+
+      <!-- ORDER TRACKING SECTION -->
+      <section class="tracking-section" id="tracking-section">
+        <div class="tracking-card">
+          <div class="tracking-header">
+            <span class="track-icon">📦</span>
+            <h2>Track Your SOLEVAULT Order</h2>
+            <p>Enter your 6-digit Order ID (e.g. <code>SV-8942</code>) or BlueDart / Delhivery AWB number.</p>
+          </div>
+          <div class="tracking-input-box">
+            <input type="text" id="track-order-input" class="track-input" placeholder="e.g. SV-8942" value="SV-8942">
+            <button class="btn btn-primary" id="track-submit-btn">Track Order</button>
+          </div>
+          <div class="quick-demo-orders">
+            <span>Try sample orders:</span>
+            <button class="chip-link" onclick="quickTrack('SV-8942')">#SV-8942 (Dispatched)</button>
+            <button class="chip-link" onclick="quickTrack('SV-9104')">#SV-9104 (Delivered)</button>
+            <button class="chip-link" onclick="quickTrack('SV-9331')">#SV-9331 (Processing)</button>
+          </div>
+          <div id="tracking-result-box" class="tracking-result-box"></div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 2: EXECUTIVE ADMIN DASHBOARD SUITE                             -->
+    <!-- ===================================================================== -->
+    <main class="content-container" id="admin-view">
+      <div class="admin-layout">
+        
+        <!-- Admin Header -->
+        <div class="admin-header">
+          <div>
+            <h1 class="admin-title">SOLEVAULT Executive Control Room</h1>
+            <p class="admin-subtitle">Real-time revenue, product catalog CRUD, warehouse stock & order fulfillment.</p>
+          </div>
+          <div class="admin-actions">
+            <button class="btn btn-secondary" id="admin-reseed-btn"><span>🔄</span> Reset Demo Database</button>
+            <button class="btn btn-primary" id="admin-create-product-btn"><span>➕</span> Add New Shoe</button>
+          </div>
+        </div>
+
+        <!-- KPI SUMMARY CARDS -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-icon">💰</span>
+            <div class="kpi-body">
+              <span class="kpi-label">Total Revenue</span>
+              <span class="kpi-value" id="kpi-total-revenue">₹1,48,990</span>
+              <span class="kpi-trend positive">↑ +18.4% vs last week</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-icon">📦</span>
+            <div class="kpi-body">
+              <span class="kpi-label">Total Orders</span>
+              <span class="kpi-value" id="kpi-total-orders">34 Orders</span>
+              <span class="kpi-trend positive">↑ 4 Pending Delivery</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-icon">👟</span>
+            <div class="kpi-body">
+              <span class="kpi-label">Active Catalog</span>
+              <span class="kpi-value" id="kpi-total-products">25 Shoes</span>
+              <span class="kpi-trend neutral">300+ Active Variants</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-icon">⚠️</span>
+            <div class="kpi-body">
+              <span class="kpi-label">Low Stock Alerts</span>
+              <span class="kpi-value warning-text" id="kpi-low-stock">2 Models</span>
+              <span class="kpi-trend warning">Reorder recommended</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-icon">💎</span>
+            <div class="kpi-body">
+              <span class="kpi-label">Average Order Value</span>
+              <span class="kpi-value" id="kpi-aov">₹4,382</span>
+              <span class="kpi-trend positive">High Ticket Footwear</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ANALYTICS SVG CHARTS GRID -->
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <span class="chart-title">7-Day Revenue Trend (₹)</span>
+            </div>
+            <div class="svg-chart-container" id="revenue-trend-chart">
+              <!-- SVG chart rendered by JS -->
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header">
+              <span class="chart-title">Sales Distribution by Category</span>
+            </div>
+            <div class="category-bars-container" id="category-bars-chart">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ADMIN TABBED TABLES -->
+        <div class="admin-tabs-section">
+          <div class="tab-headers">
+            <button class="tab-btn active" data-tab="admin-products">👟 Product Catalog & Stock</button>
+            <button class="tab-btn" data-tab="admin-orders">📦 Orders & Fulfillment</button>
+            <button class="tab-btn" data-tab="admin-customers">👥 Customers & CRM</button>
+          </div>
+
+          <!-- Product Catalog Tab -->
+          <div class="tab-pane active" id="tab-admin-products">
+            <div class="table-responsive">
+              <table class="data-table" id="admin-products-table">
+                <thead>
+                  <tr>
+                    <th>Shoe ID</th>
+                    <th>Product & SKU</th>
+                    <th>Category</th>
+                    <th>Price / MRP</th>
+                    <th>Available Stock</th>
+                    <th>Rating</th>
+                    <th>Flags</th>
+                    <th>Quick Stock Action</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-products-tbody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Orders Tab -->
+          <div class="tab-pane" id="tab-admin-orders">
+            <div class="table-responsive">
+              <table class="data-table" id="admin-orders-table">
+                <thead>
+                  <tr>
+                    <th>Order #</th>
+                    <th>Customer</th>
+                    <th>Total (₹)</th>
+                    <th>Payment</th>
+                    <th>Workflow Status</th>
+                    <th>Tracking Number</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-orders-tbody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Customers Tab -->
+          <div class="tab-pane" id="tab-admin-customers">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>User ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-customers-tbody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 3: WHATSAPP AI SALES AGENT CHAT VIEW                           -->
+    <!-- ===================================================================== -->
+    <main class="content-container" id="chat-view">
+      <div class="chat-layout-wrapper">
+        <div class="chat-container">
+          
+          <!-- WhatsApp Chat Header -->
+          <div class="chat-header">
+            <div class="chat-avatar-wrapper">
+              <div class="chat-avatar">⚡</div>
+              <div class="online-dot"></div>
+            </div>
+            <div class="chat-header-info">
+              <div class="chat-name-row">
+                <span class="chat-name">SOLEVAULT AI Sales Assistant</span>
+                <span class="verified-badge" title="Official Verified WhatsApp Sales Assistant">✓</span>
+              </div>
+              <span class="chat-status" id="chat-status-text">Online • Grounded in live catalog</span>
+            </div>
+            <div class="chat-header-badges">
+              <span class="ai-badge">Gemini 2.5 Flash</span>
+              <span class="fb-badge">Firestore Grounded</span>
+            </div>
+          </div>
+
+          <!-- Quick Test Scenarios -->
+          <div class="quick-scenarios-bar">
+            <span class="scenarios-label">Quick Test:</span>
+            <button class="scenario-btn" onclick="sendTestMsg('I need black running shoes under 5000')">Running &lt; ₹5k</button>
+            <button class="scenario-btn" onclick="sendTestMsg('Do you have size 14 in AeroSprint X1?')">Invalid Size (14)</button>
+            <button class="scenario-btn" onclick="sendTestMsg('bro stock iruka UrbanFlex 200?')">Tanglish Stock Query</button>
+            <button class="scenario-btn" onclick="sendTestMsg('Can you give Velocity One for ₹3000?')">Discount Exploit</button>
+            <button class="scenario-btn" onclick="sendTestMsg('Where is my order #SV-8942?')">Order Tracking</button>
+            <button class="scenario-btn" onclick="sendTestMsg('What is your return policy?')">Return Policy</button>
+          </div>
+
+          <!-- Chat Transcript Box -->
+          <div class="chat-messages" id="chat-messages-box">
+            <!-- Messages populated by JS -->
+          </div>
+
+          <!-- Typing Indicator -->
+          <div class="typing-indicator-box" id="typing-indicator" style="display: none;">
+            <div class="typing-bubble">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+            <span class="typing-label">SOLEVAULT AI is typing...</span>
+          </div>
+
+          <!-- Chat Input Bar -->
+          <div class="chat-input-bar">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Type a message (e.g. 'Show me comfortable walking shoes for women')..." autocomplete="off">
+            <button class="chat-send-btn" id="chat-send-btn">
+              <span>➤</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- GLOBAL MODALS & DRAWERS                                               -->
+    <!-- ===================================================================== -->
+
+    <!-- PRODUCT DETAIL MODAL -->
+    <div class="modal-overlay" id="product-detail-modal">
+      <div class="modal-card product-modal-card">
+        <button class="modal-close-btn" id="close-product-modal">✕</button>
+        <div class="product-modal-grid" id="product-modal-content">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+
+    <!-- CART SLIDING DRAWER -->
+    <div class="drawer-overlay" id="cart-drawer-overlay">
+      <div class="cart-drawer">
+        <div class="drawer-header">
+          <div class="drawer-title-row">
+            <span class="drawer-title">Shopping Cart</span>
+            <span class="drawer-count" id="cart-drawer-count">(0 items)</span>
+          </div>
+          <button class="modal-close-btn" id="close-cart-drawer">✕</button>
+        </div>
+
+        <!-- Free Shipping Progress -->
+        <div class="free-shipping-box" id="free-shipping-box">
+          <div class="shipping-progress-text" id="free-shipping-text">Add ₹1,500 more for Free Express Delivery</div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="free-shipping-bar" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Cart Line Items -->
+        <div class="cart-items-list" id="cart-items-container">
+          <!-- Cart items rendered by JS -->
+        </div>
+
+        <!-- Coupon Input Box -->
+        <div class="coupon-box">
+          <input type="text" id="coupon-code-input" class="coupon-input" placeholder="Enter coupon (STRIDE10, WELCOME500)" style="text-transform: uppercase;">
+          <button class="btn btn-secondary" id="apply-coupon-btn">Apply</button>
+        </div>
+        <div id="coupon-feedback" class="coupon-feedback"></div>
+
+        <!-- Cart Summary Footer -->
+        <div class="cart-footer">
+          <div class="summary-line">
+            <span>Subtotal</span>
+            <span id="cart-subtotal">₹0</span>
+          </div>
+          <div class="summary-line discount-line" id="cart-discount-row" style="display: none;">
+            <span>Coupon Discount</span>
+            <span id="cart-coupon-discount">-₹0</span>
+          </div>
+          <div class="summary-line">
+            <span>Estimated GST (18%)</span>
+            <span id="cart-tax">₹0</span>
+          </div>
+          <div class="summary-line">
+            <span>Shipping</span>
+            <span id="cart-shipping">₹0</span>
+          </div>
+          <div class="summary-line total-line">
+            <span>Total Amount</span>
+            <span id="cart-total">₹0</span>
+          </div>
+          <button class="btn btn-primary btn-block btn-lg" id="proceed-checkout-btn">
+            Proceed to Checkout ➔
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MULTI-STEP CHECKOUT MODAL -->
+    <div class="modal-overlay" id="checkout-modal">
+      <div class="modal-card checkout-modal-card">
+        <button class="modal-close-btn" id="close-checkout-modal">✕</button>
+        <div class="checkout-wrapper">
+          <div class="checkout-header">
+            <h2>Secure Checkout</h2>
+            <div class="checkout-steps-indicator">
+              <span class="step-badge active">1. Contact & Address</span>
+              <span class="step-arrow">➔</span>
+              <span class="step-badge active">2. Payment</span>
+              <span class="step-arrow">➔</span>
+              <span class="step-badge">3. Confirmation</span>
+            </div>
+          </div>
+
+          <form id="checkout-form" class="checkout-form">
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label>Full Name *</label>
+                <input type="text" id="co-name" class="form-input" placeholder="Rohan Patel" required value="Rohan Patel">
+              </div>
+              <div class="form-group">
+                <label>Email Address *</label>
+                <input type="email" id="co-email" class="form-input" placeholder="rohan@example.com" required value="rohan@example.com">
+              </div>
+              <div class="form-group">
+                <label>Phone Number *</label>
+                <input type="tel" id="co-phone" class="form-input" placeholder="+91 98765 43210" required value="+919876543210">
+              </div>
+              <div class="form-group full-width">
+                <label>Address Line 1 *</label>
+                <input type="text" id="co-addr1" class="form-input" placeholder="Flat 402, Skyline Towers" required value="Flat 402, Skyline Towers">
+              </div>
+              <div class="form-group">
+                <label>City *</label>
+                <input type="text" id="co-city" class="form-input" placeholder="Bengaluru" required value="Bengaluru">
+              </div>
+              <div class="form-group">
+                <label>State *</label>
+                <input type="text" id="co-state" class="form-input" placeholder="Karnataka" required value="Karnataka">
+              </div>
+              <div class="form-group">
+                <label>Postal Code *</label>
+                <input type="text" id="co-pin" class="form-input" placeholder="560038" required value="560038">
+              </div>
+              <div class="form-group">
+                <label>Payment Method *</label>
+                <select id="co-payment" class="select-input">
+                  <option value="UPI">Instant UPI (GPay / PhonePe / Paytm)</option>
+                  <option value="Credit Card">Credit / Debit Card</option>
+                  <option value="Net Banking">Net Banking</option>
+                  <option value="Cash on Delivery">Cash on Delivery (COD)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="checkout-summary-box">
+              <div class="summary-line total-line">
+                <span>Final Payable:</span>
+                <span id="checkout-payable-total">₹0</span>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg" id="place-order-submit-btn">
+              <span>🔒</span> Place Order & Generate Tracking ID
+            </button>
+          </form>
+
+          <div id="checkout-success-view" class="checkout-success-view" style="display: none;">
+            <div class="success-icon">🎉</div>
+            <h3>Order Placed Successfully!</h3>
+            <p>Thank you for choosing SOLEVAULT. Your order has been confirmed.</p>
+            <div class="order-receipt-badge" id="success-order-number">Order #SV-8942</div>
+            <div class="success-actions">
+              <button class="btn btn-primary" id="success-track-btn">Track Order Live</button>
+              <button class="btn btn-secondary" id="success-continue-btn">Continue Shopping</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPARISON DRAWER -->
+    <div class="drawer-overlay" id="compare-drawer-overlay">
+      <div class="compare-drawer">
+        <div class="drawer-header">
+          <span class="drawer-title">Side-by-Side Shoe Comparison (Up to 4)</span>
+          <button class="modal-close-btn" id="close-compare-drawer">✕</button>
+        </div>
+        <div class="compare-matrix-container" id="compare-matrix-container">
+          <!-- Comparison columns rendered by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- GLOBAL SEARCH MODAL -->
+    <div class="modal-overlay" id="search-modal">
+      <div class="modal-card search-modal-card">
+        <div class="search-input-header">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="global-search-input" class="global-search-input" placeholder="Search by shoe name, category, material, or SKU (e.g. 'AeroSprint', 'Trekking', 'Waterproof')...">
+          <button class="modal-close-btn" id="close-search-modal">✕</button>
+        </div>
+        <div class="search-results-box" id="search-results-box">
+          <div class="popular-searches">
+            <span>Popular Searches:</span>
+            <button class="chip-link" onclick="searchQuick('Running')">Running Shoes</button>
+            <button class="chip-link" onclick="searchQuick('AeroSprint')">AeroSprint X1</button>
+            <button class="chip-link" onclick="searchQuick('Trekking')">Trekking Shoes</button>
+            <button class="chip-link" onclick="searchQuick('Sneakers')">Casual Sneakers</button>
+          </div>
+          <div class="search-live-grid" id="search-live-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

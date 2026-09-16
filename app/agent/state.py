@@ -1,7 +1,7 @@
 from typing import TypedDict, Optional, List, Dict, Any
 
 
-class SalesAgentState(TypedDict):
+class SalesAgentState(TypedDict, total=False):
     tenant_id: str
     lead_id: str
     contact_number: str
@@ -15,4 +15,10 @@ class SalesAgentState(TypedDict):
     route_destination: Optional[str]
     reply_text: str
     history: List[Dict[str, str]]
+    verified_products: List[Dict[str, Any]]
+    inventory_data: Optional[Dict[str, Any]]
+    business_info: Optional[Dict[str, Any]]
+    extracted_sales: Optional[Dict[str, Any]]
+    is_inappropriate: bool
+    is_jailbreak: bool
     error: Optional[str]

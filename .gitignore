@@ -30,6 +30,10 @@ ENV/
 .env
 .env.local
 .env.*.local
+*serviceAccountKey*.json
+*credentials*.json
+firebase-credentials.json
+
 
 # SQLite Database / Local DBs
 *.db

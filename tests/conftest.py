@@ -4,6 +4,8 @@ from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import StaticPool
 from app.db.models import Base, Tenant, Lead, Conversation, QualificationFlow, QuoteInvoice, FollowUpJob
+from app.db.solevault_models import Base as SolevaultBase
+from app.db.seed_solevault import seed_solevault_database
 from app.db.session import get_db
 from app.main import app
 
@@ -26,8 +28,12 @@ TestAsyncSessionLocal = async_sessionmaker(
 async def setup_test_db():
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(SolevaultBase.metadata.create_all)
+    async with TestAsyncSessionLocal() as session:
+        await seed_solevault_database(session)
     yield
     async with test_engine.begin() as conn:
+        await conn.run_sync(SolevaultBase.metadata.drop_all)
         await conn.run_sync(Base.metadata.drop_all)
 
 

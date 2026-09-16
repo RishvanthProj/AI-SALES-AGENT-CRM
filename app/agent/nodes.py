@@ -1,75 +1,170 @@
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 from app.agent.state import SalesAgentState
-from app.services.claude_service import claude_service
+from app.services.ai_service_factory import get_ai_provider
+from app.services.firebase_service import firebase_service
+from app.services.validation_service import validation_service
+from app.schemas.ai import GroundedResponseContext
 
 
 def greet_node(state: SalesAgentState) -> Dict[str, Any]:
     """
     Greet Node:
-    Welcomes the lead and introduces the business service.
+    Welcomes the lead naturally, introduces the business, handles small talk.
     Graph controls state -> sets current_stage to 'greet'.
     """
-    reply = claude_service.generate_stage_copy(
+    ai = get_ai_provider()
+    tenant_id = state.get("tenant_id", "default")
+    incoming = state.get("incoming_message", "")
+    history = state.get("history", [])
+
+    # Extract structured signals
+    sales_info = ai.extract_sales_signals(incoming, history)
+    b_settings = firebase_service.get_business_settings(tenant_id)
+
+    context = GroundedResponseContext(
+        business_name=b_settings.business_name,
+        business_description=b_settings.business_description,
         current_stage="greet",
         lead_name=state.get("lead_name"),
-        conversation_history=state.get("history", []),
-        extracted_signals={}
+        conversation_history=history,
+        customer_message=incoming,
+        known_signals={"intent": sales_info.intent}
     )
+
+    reply = ai.generate_conversational_response(context)
+    val_res = validation_service.validate_and_sanitize_response(
+        generated_reply=reply,
+        verified_products=[],
+        inventory_data=None,
+        business_settings=b_settings,
+        customer_message=incoming
+    )
+
     return {
         "current_stage": "greet",
-        "reply_text": reply
+        "extracted_sales": sales_info.model_dump(),
+        "is_inappropriate": sales_info.inappropriate_content,
+        "is_jailbreak": sales_info.is_jailbreak_attempt,
+        "reply_text": val_res.sanitized_text
     }
 
 
 def qualify_node(state: SalesAgentState) -> Dict[str, Any]:
     """
     Qualify Node:
-    Extracts the user's primary requirement/need using Claude structured extraction.
+    Extracts the user's primary requirement/product query and looks up authentic
+    products from Firebase.
     Graph controls state -> sets current_stage to 'qualify'.
     """
+    ai = get_ai_provider()
+    tenant_id = state.get("tenant_id", "default")
     incoming = state.get("incoming_message", "")
-    need_data = claude_service.extract_need(
-        message_text=incoming,
-        conversation_history=state.get("history", [])
+    history = state.get("history", [])
+
+    sales_info = ai.extract_sales_signals(incoming, history)
+    b_settings = firebase_service.get_business_settings(tenant_id)
+
+    # Query Firebase for authentic matching products
+    query_text = sales_info.product_query or incoming
+    found_products = firebase_service.search_products(
+        business_id=tenant_id,
+        query=query_text,
+        max_budget=sales_info.budget,
+        color=sales_info.color,
+        size=sales_info.size
     )
 
-    reply = claude_service.generate_stage_copy(
+    verified_prods = [p.model_dump() for p in found_products]
+    inventory_data = None
+    if found_products:
+        inventory_data = firebase_service.check_inventory(
+            business_id=tenant_id,
+            product_id=found_products[0].id,
+            size=sales_info.size,
+            color=sales_info.color
+        )
+
+    context = GroundedResponseContext(
+        business_name=b_settings.business_name,
+        business_description=b_settings.business_description,
         current_stage="qualify",
         lead_name=state.get("lead_name"),
-        conversation_history=state.get("history", []),
-        extracted_signals={"need": need_data.summary}
+        conversation_history=history,
+        verified_products=verified_prods,
+        inventory_data=inventory_data,
+        customer_message=incoming,
+        known_signals={
+            "need": query_text,
+            "budget": sales_info.budget,
+            "size": sales_info.size,
+            "color": sales_info.color
+        }
     )
+
+    reply = ai.generate_conversational_response(context)
+    val_res = validation_service.validate_and_sanitize_response(
+        generated_reply=reply,
+        verified_products=verified_prods,
+        inventory_data=inventory_data,
+        business_settings=b_settings,
+        customer_message=incoming
+    )
+
+    need_summary = query_text if query_text.strip() else state.get("need_summary")
 
     return {
         "current_stage": "qualify",
-        "need_summary": need_data.summary,
-        "reply_text": reply
+        "need_summary": need_summary,
+        "verified_products": verified_prods,
+        "inventory_data": inventory_data,
+        "extracted_sales": sales_info.model_dump(),
+        "is_inappropriate": sales_info.inappropriate_content,
+        "is_jailbreak": sales_info.is_jailbreak_attempt,
+        "reply_text": val_res.sanitized_text
     }
 
 
 def collect_budget_node(state: SalesAgentState) -> Dict[str, Any]:
     """
     Collect Budget Node:
-    Extracts structured budget signal from incoming message.
+    Extracts structured budget signal from incoming message or previous state.
     Graph controls state -> sets current_stage to 'collect_budget'.
     """
+    ai = get_ai_provider()
+    tenant_id = state.get("tenant_id", "default")
     incoming = state.get("incoming_message", "")
-    budget_data = claude_service.extract_budget(message_text=incoming)
+    history = state.get("history", [])
 
-    # Preserve existing budget_signal if already populated
+    budget_data = ai.extract_budget(message_text=incoming)
     current_budget = state.get("budget_signal") or budget_data.budget_range
 
-    reply = claude_service.generate_stage_copy(
+    b_settings = firebase_service.get_business_settings(tenant_id)
+
+    context = GroundedResponseContext(
+        business_name=b_settings.business_name,
+        business_description=b_settings.business_description,
         current_stage="collect_budget",
         lead_name=state.get("lead_name"),
-        conversation_history=state.get("history", []),
-        extracted_signals={"budget_signal": current_budget}
+        conversation_history=history,
+        verified_products=state.get("verified_products", []),
+        inventory_data=state.get("inventory_data"),
+        customer_message=incoming,
+        known_signals={"budget_signal": current_budget}
+    )
+
+    reply = ai.generate_conversational_response(context)
+    val_res = validation_service.validate_and_sanitize_response(
+        generated_reply=reply,
+        verified_products=state.get("verified_products", []),
+        inventory_data=state.get("inventory_data"),
+        business_settings=b_settings,
+        customer_message=incoming
     )
 
     return {
         "current_stage": "collect_budget",
         "budget_signal": current_budget,
-        "reply_text": reply
+        "reply_text": val_res.sanitized_text
     }
 
 
@@ -79,25 +174,44 @@ def collect_timeline_node(state: SalesAgentState) -> Dict[str, Any]:
     Extracts structured timeline signal from incoming message.
     Graph controls state -> sets current_stage to 'collect_timeline'.
     """
+    ai = get_ai_provider()
+    tenant_id = state.get("tenant_id", "default")
     incoming = state.get("incoming_message", "")
-    timeline_data = claude_service.extract_timeline(message_text=incoming)
+    history = state.get("history", [])
 
+    timeline_data = ai.extract_timeline(message_text=incoming)
     current_timeline = state.get("timeline_signal") or timeline_data.timeline_str
 
-    reply = claude_service.generate_stage_copy(
+    b_settings = firebase_service.get_business_settings(tenant_id)
+
+    context = GroundedResponseContext(
+        business_name=b_settings.business_name,
+        business_description=b_settings.business_description,
         current_stage="collect_timeline",
         lead_name=state.get("lead_name"),
-        conversation_history=state.get("history", []),
-        extracted_signals={
+        conversation_history=history,
+        verified_products=state.get("verified_products", []),
+        inventory_data=state.get("inventory_data"),
+        customer_message=incoming,
+        known_signals={
             "budget_signal": state.get("budget_signal"),
             "timeline_signal": current_timeline
         }
     )
 
+    reply = ai.generate_conversational_response(context)
+    val_res = validation_service.validate_and_sanitize_response(
+        generated_reply=reply,
+        verified_products=state.get("verified_products", []),
+        inventory_data=state.get("inventory_data"),
+        business_settings=b_settings,
+        customer_message=incoming
+    )
+
     return {
         "current_stage": "collect_timeline",
         "timeline_signal": current_timeline,
-        "reply_text": reply
+        "reply_text": val_res.sanitized_text
     }
 
 
@@ -130,28 +244,40 @@ def score_node(state: SalesAgentState) -> Dict[str, Any]:
 def route_node(state: SalesAgentState) -> Dict[str, Any]:
     """
     Route Node:
-    Determines next business routing stage based strictly on score and budget constraint:
+    Determines next business routing stage based strictly on score and constraints:
     - Score >= 70 AND budget_signal is present -> 'quoted'
     - Score < 40 -> 'nurture'
-    - Otherwise -> 'human_handoff'
-
-    The LLM only generates the final closing message matching this decision.
+    - Otherwise (or if flagged for human) -> 'human_handoff'
     """
+    ai = get_ai_provider()
+    tenant_id = state.get("tenant_id", "default")
     score = state.get("qualification_score", 0.0)
     has_budget = bool(state.get("budget_signal") and str(state.get("budget_signal")).strip())
+    is_inappropriate = state.get("is_inappropriate", False)
 
-    if score >= 70.0 and has_budget:
+    if is_inappropriate:
+        destination = "human_handoff"
+    elif score >= 70.0 and has_budget:
         destination = "quoted"
     elif score < 40.0:
         destination = "nurture"
     else:
         destination = "human_handoff"
 
-    reply = claude_service.generate_stage_copy(
+    b_settings = firebase_service.get_business_settings(tenant_id)
+    history = state.get("history", [])
+    incoming = state.get("incoming_message", "")
+
+    context = GroundedResponseContext(
+        business_name=b_settings.business_name,
+        business_description=b_settings.business_description,
         current_stage="route",
         lead_name=state.get("lead_name"),
-        conversation_history=state.get("history", []),
-        extracted_signals={
+        conversation_history=history,
+        verified_products=state.get("verified_products", []),
+        inventory_data=state.get("inventory_data"),
+        customer_message=incoming,
+        known_signals={
             "score": score,
             "route": destination,
             "budget_signal": state.get("budget_signal"),
@@ -159,8 +285,17 @@ def route_node(state: SalesAgentState) -> Dict[str, Any]:
         }
     )
 
+    reply = ai.generate_conversational_response(context)
+    val_res = validation_service.validate_and_sanitize_response(
+        generated_reply=reply,
+        verified_products=state.get("verified_products", []),
+        inventory_data=state.get("inventory_data"),
+        business_settings=b_settings,
+        customer_message=incoming
+    )
+
     return {
         "current_stage": "route",
         "route_destination": destination,
-        "reply_text": reply
+        "reply_text": val_res.sanitized_text
     }
